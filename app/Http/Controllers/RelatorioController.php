@@ -5,11 +5,15 @@ namespace App\Http\Controllers;
 use App\Enums\FinalidadeRelatorio;
 use App\Enums\ProcessoRelatorio;
 use App\Http\Requests\StoreRelatorioRequest;
+use App\Http\Requests\UpdateRelatorioRequest;
 use App\Models\Cliente;
+use App\Models\RelatorioCompartimento;
+use App\Models\RelatorioDescontaminacao;
 use App\Models\User;
 use App\Models\Veiculo;
 use App\Services\SnapshotService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class RelatorioController extends Controller
@@ -52,7 +56,7 @@ class RelatorioController extends Controller
             'criado_por_id' => $request->user()->id,
         ];
 
-        $this->snapshotService->createFullReport(
+        $relatorio = $this->snapshotService->createFullReport(
             $reportData,
             $validated['finalidades'],
             $cliente,
@@ -60,7 +64,81 @@ class RelatorioController extends Controller
         );
 
         return redirect()
-            ->route('dashboard')
+            ->route('relatorios.show', $relatorio)
             ->with('success', 'Relatório criado com sucesso!');
+    }
+
+    public function show(RelatorioDescontaminacao $relatorio): View
+    {
+        $relatorio->load([
+            'clienteSnapshot',
+            'veiculoSnapshot',
+            'finalidades',
+            'compartimentos',
+            'equipamentosUtilizados',
+            'responsavelTecnico',
+        ]);
+
+        return view('relatorios.show', compact('relatorio'));
+    }
+
+    public function edit(RelatorioDescontaminacao $relatorio): View
+    {
+        $relatorio->load([
+            'clienteSnapshot',
+            'veiculoSnapshot',
+            'finalidades',
+            'compartimentos',
+            'responsavelTecnico',
+        ]);
+
+        $responsaveis = User::orderBy('name')->get();
+        $processos = ProcessoRelatorio::cases();
+
+        return view('relatorios.edit', compact('relatorio', 'responsaveis', 'processos'));
+    }
+
+    public function update(UpdateRelatorioRequest $request, RelatorioDescontaminacao $relatorio): RedirectResponse
+    {
+        $validated = $request->validated();
+
+        DB::transaction(function () use ($relatorio, $validated) {
+            $relatorio->update([
+                'data_servico' => $validated['data_servico'],
+                'responsavel_tecnico_id' => $validated['responsavel_tecnico_id'],
+                'processo' => $validated['processo'],
+                'observacoes' => $validated['observacoes'] ?? null,
+                'lacre_entrada' => $validated['lacre_entrada'] ?? null,
+                'lacre_saida' => $validated['lacre_saida'] ?? null,
+            ]);
+
+            $compartimentosInput = collect($validated['compartimentos'])->keyBy('id');
+
+            // Phase 1: set all numbers to a safe temporary value (1_000_000 + id)
+            // to avoid triggering the unique(relatorio_id, numero) constraint during updates.
+            foreach ($compartimentosInput as $id => $data) {
+                RelatorioCompartimento::where('id', $id)
+                    ->where('relatorio_id', $relatorio->id)
+                    ->update(['numero' => 1000000 + (int) $id]);
+            }
+
+            // Phase 2: write the final values
+            foreach ($compartimentosInput as $id => $data) {
+                RelatorioCompartimento::where('id', $id)
+                    ->where('relatorio_id', $relatorio->id)
+                    ->update([
+                        'numero' => $data['numero'],
+                        'capacidade_litros' => $data['capacidade_litros'],
+                        'produto_anterior_nome' => $data['produto_anterior_nome'] ?? null,
+                        'lacre_entrada_numero' => $data['lacre_entrada_numero'] ?? null,
+                        'lacre_saida_numero' => $data['lacre_saida_numero'] ?? null,
+                        'observacao' => $data['observacao'] ?? null,
+                    ]);
+            }
+        });
+
+        return redirect()
+            ->route('relatorios.show', $relatorio)
+            ->with('success', 'Relatório atualizado com sucesso!');
     }
 }

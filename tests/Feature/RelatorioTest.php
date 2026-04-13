@@ -61,7 +61,8 @@ class RelatorioTest extends TestCase
     {
         $response = $this->actingAs($this->user)->post(route('relatorios.store'), $this->validPayload());
 
-        $response->assertRedirect(route('dashboard'));
+        $relatorio = RelatorioDescontaminacao::latest('id')->first();
+        $response->assertRedirect(route('relatorios.show', $relatorio));
         $response->assertSessionHas('success');
 
         $this->assertDatabaseHas('relatorio_descontaminacoes', [
@@ -213,10 +214,10 @@ class RelatorioTest extends TestCase
             'lacre_saida' => 'LAC-OUT-001',
         ]));
 
-        $response->assertRedirect(route('dashboard'));
+        $relatorio = RelatorioDescontaminacao::latest('id')->first();
+        $response->assertRedirect(route('relatorios.show', $relatorio));
         $response->assertSessionHas('success');
 
-        $relatorio = RelatorioDescontaminacao::latest('id')->first();
         $this->assertEquals('LAC-IN-001', $relatorio->lacre_entrada);
         $this->assertEquals('LAC-OUT-001', $relatorio->lacre_saida);
     }
@@ -228,5 +229,232 @@ class RelatorioTest extends TestCase
         ]));
 
         $response->assertSessionHasErrors('finalidades');
+    }
+
+    // -----------------------------------------------------------------------
+    // Helpers for edit/update tests
+    // -----------------------------------------------------------------------
+
+    /**
+     * Create a report that has at least one frozen compartimento snapshot.
+     * Returns the persisted RelatorioDescontaminacao.
+     */
+    private function createReportWithCompartments(int $compartmentCount = 1): RelatorioDescontaminacao
+    {
+        for ($n = 1; $n <= $compartmentCount; $n++) {
+            VeiculoCompartimento::factory()->create([
+                'veiculo_id' => $this->veiculo->id,
+                'numero' => $n,
+                'capacidade_litros' => 10000,
+            ]);
+        }
+
+        $this->actingAs($this->user)
+            ->post(route('relatorios.store'), $this->validPayload());
+
+        return RelatorioDescontaminacao::latest('id')->first();
+    }
+
+    // -----------------------------------------------------------------------
+    // Show
+    // -----------------------------------------------------------------------
+
+    public function test_show_page_requires_authentication(): void
+    {
+        $relatorio = $this->createReportWithCompartments();
+        $this->app['auth']->forgetGuards();
+
+        $this->get(route('relatorios.show', $relatorio))
+            ->assertRedirect('/login');
+    }
+
+    public function test_show_page_displays_report(): void
+    {
+        $relatorio = $this->createReportWithCompartments();
+
+        $this->actingAs($this->user)
+            ->get(route('relatorios.show', $relatorio))
+            ->assertStatus(200)
+            ->assertSee((string) $relatorio->numero_relatorio)
+            ->assertSee($relatorio->processo->label());
+    }
+
+    // -----------------------------------------------------------------------
+    // Edit
+    // -----------------------------------------------------------------------
+
+    public function test_edit_page_requires_authentication(): void
+    {
+        $relatorio = $this->createReportWithCompartments();
+        $this->app['auth']->forgetGuards();
+
+        $this->get(route('relatorios.edit', $relatorio))
+            ->assertRedirect('/login');
+    }
+
+    public function test_edit_page_loads_for_authenticated_user(): void
+    {
+        $relatorio = $this->createReportWithCompartments();
+
+        $this->actingAs($this->user)
+            ->get(route('relatorios.edit', $relatorio))
+            ->assertStatus(200)
+            ->assertSee((string) $relatorio->numero_relatorio);
+    }
+
+    // -----------------------------------------------------------------------
+    // Update
+    // -----------------------------------------------------------------------
+
+    public function test_can_update_report_compartments(): void
+    {
+        $relatorio = $this->createReportWithCompartments();
+        $comp = $relatorio->compartimentos()->first();
+
+        $response = $this->actingAs($this->user)->put(route('relatorios.update', $relatorio), [
+            'data_servico' => '2024-07-01',
+            'responsavel_tecnico_id' => $this->user->id,
+            'processo' => ProcessoRelatorio::VAPOR->value,
+            'compartimentos' => [
+                [
+                    'id' => $comp->id,
+                    'numero' => $comp->numero,
+                    'capacidade_litros' => 12500,
+                    'produto_anterior_nome' => 'Diesel S500',
+                    'lacre_entrada_numero' => 'LAC-ENT-001',
+                    'lacre_saida_numero' => 'LAC-SAI-001',
+                    'observacao' => 'Limpo e vistoriado',
+                ],
+            ],
+        ]);
+
+        $response->assertRedirect(route('relatorios.show', $relatorio));
+        $response->assertSessionHas('success');
+
+        $comp->refresh();
+        $this->assertEquals('12500.00', $comp->capacidade_litros);
+        $this->assertEquals('Diesel S500', $comp->produto_anterior_nome);
+        $this->assertEquals('LAC-ENT-001', $comp->lacre_entrada_numero);
+        $this->assertEquals('LAC-SAI-001', $comp->lacre_saida_numero);
+        $this->assertEquals('Limpo e vistoriado', $comp->observacao);
+
+        // Report-level fields also updated
+        $relatorio->refresh();
+        $this->assertEquals('2024-07-01', $relatorio->data_servico->format('Y-m-d'));
+        $this->assertEquals(ProcessoRelatorio::VAPOR, $relatorio->processo);
+    }
+
+    public function test_duplicate_compartment_numbers_are_rejected_on_update(): void
+    {
+        $relatorio = $this->createReportWithCompartments(2);
+        $comps = $relatorio->compartimentos()->orderBy('numero')->get();
+
+        $response = $this->actingAs($this->user)->put(route('relatorios.update', $relatorio), [
+            'data_servico' => '2024-07-01',
+            'responsavel_tecnico_id' => $this->user->id,
+            'processo' => ProcessoRelatorio::LAVAGEM->value,
+            'compartimentos' => [
+                [
+                    'id' => $comps[0]->id,
+                    'numero' => 1,
+                    'capacidade_litros' => 10000,
+                ],
+                [
+                    'id' => $comps[1]->id,
+                    'numero' => 1, // duplicate
+                    'capacidade_litros' => 10000,
+                ],
+            ],
+        ]);
+
+        $response->assertSessionHasErrors('compartimentos');
+    }
+
+    public function test_update_does_not_modify_live_vehicle_compartments(): void
+    {
+        $relatorio = $this->createReportWithCompartments();
+        $liveComp = $this->veiculo->compartimentos()->first();
+        $originalCapacidade = $liveComp->capacidade_litros;
+
+        $snapshotComp = $relatorio->compartimentos()->first();
+
+        $this->actingAs($this->user)->put(route('relatorios.update', $relatorio), [
+            'data_servico' => '2024-07-01',
+            'responsavel_tecnico_id' => $this->user->id,
+            'processo' => ProcessoRelatorio::LAVAGEM->value,
+            'compartimentos' => [
+                [
+                    'id' => $snapshotComp->id,
+                    'numero' => $snapshotComp->numero,
+                    'capacidade_litros' => 99999,
+                    'produto_anterior_nome' => 'Alterado',
+                ],
+            ],
+        ]);
+
+        // Report snapshot was updated
+        $snapshotComp->refresh();
+        $this->assertEquals('99999.00', $snapshotComp->capacidade_litros);
+
+        // Live vehicle compartment is unchanged
+        $liveComp->refresh();
+        $this->assertEquals($originalCapacidade, $liveComp->capacidade_litros);
+    }
+
+    public function test_compartimento_from_another_report_is_rejected(): void
+    {
+        $relatorio1 = $this->createReportWithCompartments();
+
+        // Create a second report with a separate vehicle so there's no unique constraint conflict.
+        $veiculo2 = Veiculo::factory()->create();
+        VeiculoCompartimento::factory()->create([
+            'veiculo_id' => $veiculo2->id,
+            'numero' => 1,
+            'capacidade_litros' => 10000,
+        ]);
+        $this->actingAs($this->user)->post(route('relatorios.store'), array_merge($this->validPayload(), [
+            'veiculo_id' => $veiculo2->id,
+        ]));
+        $relatorio2 = RelatorioDescontaminacao::latest('id')->first();
+
+        $otherComp = $relatorio2->compartimentos()->first();
+
+        $response = $this->actingAs($this->user)->put(route('relatorios.update', $relatorio1), [
+            'data_servico' => '2024-07-01',
+            'responsavel_tecnico_id' => $this->user->id,
+            'processo' => ProcessoRelatorio::LAVAGEM->value,
+            'compartimentos' => [
+                [
+                    'id' => $otherComp->id, // belongs to relatorio2, not relatorio1
+                    'numero' => 1,
+                    'capacidade_litros' => 10000,
+                ],
+            ],
+        ]);
+
+        $response->assertSessionHasErrors('compartimentos.0.id');
+    }
+
+    public function test_lacre_saida_requires_lacre_entrada_on_compartimento(): void
+    {
+        $relatorio = $this->createReportWithCompartments();
+        $comp = $relatorio->compartimentos()->first();
+
+        $response = $this->actingAs($this->user)->put(route('relatorios.update', $relatorio), [
+            'data_servico' => '2024-07-01',
+            'responsavel_tecnico_id' => $this->user->id,
+            'processo' => ProcessoRelatorio::LAVAGEM->value,
+            'compartimentos' => [
+                [
+                    'id' => $comp->id,
+                    'numero' => $comp->numero,
+                    'capacidade_litros' => 10000,
+                    'lacre_entrada_numero' => '',    // missing
+                    'lacre_saida_numero' => 'LAC-SAI-999',
+                ],
+            ],
+        ]);
+
+        $response->assertSessionHasErrors('compartimentos.0.lacre_entrada_numero');
     }
 }

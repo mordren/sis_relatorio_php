@@ -35,13 +35,16 @@
                             <th>Processo</th>
                             <th>Responsável</th>
                             <th>Criado em</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach($relatorios as $relatorio)
                         <tr>
                             <td>
-                                <strong>{{ $relatorio->numero_relatorio }}</strong>
+                                <a href="{{ route('relatorios.show', $relatorio) }}" class="fw-bold text-decoration-none">
+                                    #{{ $relatorio->numero_relatorio }}
+                                </a>
                             </td>
                             <td>
                                 <span class="badge {{ $relatorio->status->badgeClass() }}">
@@ -64,6 +67,20 @@
                             <td>{{ $relatorio->processo->label() }}</td>
                             <td>{{ $relatorio->responsavelTecnico->name ?? '-' }}</td>
                             <td>{{ $relatorio->created_at->format('d/m/Y H:i') }}</td>
+                            <td class="text-end text-nowrap">
+                                <a href="{{ route('relatorios.show', $relatorio) }}"
+                                   class="btn btn-outline-secondary btn-sm"
+                                   title="Ver">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                @if($relatorio->status === \App\Enums\StatusRelatorio::RASCUNHO)
+                                    <a href="{{ route('relatorios.edit', $relatorio) }}"
+                                       class="btn btn-outline-primary btn-sm"
+                                       title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                @endif
+                            </td>
                         </tr>
                         @endforeach
                     </tbody>

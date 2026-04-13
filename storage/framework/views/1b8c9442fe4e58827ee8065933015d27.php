@@ -35,13 +35,17 @@
                             <th>Processo</th>
                             <th>Responsável</th>
                             <th>Criado em</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php $__currentLoopData = $relatorios; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $relatorio): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                         <tr>
                             <td>
-                                <strong><?php echo e($relatorio->numero_relatorio); ?></strong>
+                                <a href="<?php echo e(route('relatorios.show', $relatorio)); ?>" class="fw-bold text-decoration-none">
+                                    #<?php echo e($relatorio->numero_relatorio); ?>
+
+                                </a>
                             </td>
                             <td>
                                 <span class="badge <?php echo e($relatorio->status->badgeClass()); ?>">
@@ -66,6 +70,20 @@
                             <td><?php echo e($relatorio->processo->label()); ?></td>
                             <td><?php echo e($relatorio->responsavelTecnico->name ?? '-'); ?></td>
                             <td><?php echo e($relatorio->created_at->format('d/m/Y H:i')); ?></td>
+                            <td class="text-end text-nowrap">
+                                <a href="<?php echo e(route('relatorios.show', $relatorio)); ?>"
+                                   class="btn btn-outline-secondary btn-sm"
+                                   title="Ver">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <?php if($relatorio->status === \App\Enums\StatusRelatorio::RASCUNHO): ?>
+                                    <a href="<?php echo e(route('relatorios.edit', $relatorio)); ?>"
+                                       class="btn btn-outline-primary btn-sm"
+                                       title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                <?php endif; ?>
+                            </td>
                         </tr>
                         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     </tbody>
