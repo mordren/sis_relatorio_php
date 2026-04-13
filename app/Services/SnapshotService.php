@@ -11,7 +11,6 @@ use App\Models\RelatorioEquipamentoUtilizado;
 use App\Models\RelatorioFinalidade;
 use App\Models\RelatorioVeiculoSnapshot;
 use App\Models\Veiculo;
-use App\Models\VeiculoCompartimento;
 use Illuminate\Support\Facades\DB;
 
 class SnapshotService
@@ -58,8 +57,13 @@ class SnapshotService
     }
 
     /**
-     * Create frozen compartment snapshots from vehicle compartments.
-     * Each compartment's product name is captured at snapshot time.
+     * Create empty compartment snapshot rows based on the vehicle's
+     * numero_compartimentos field.
+     *
+     * Details (product name, UN number, capacity, etc.) are filled later on
+     * the report edit page. Rows are numbered sequentially from 1.
+     *
+     * NOTE: Never reads from VeiculoCompartimento in the active workflow.
      *
      * @return \Illuminate\Support\Collection<int, RelatorioCompartimento>
      */
@@ -67,18 +71,15 @@ class SnapshotService
         RelatorioDescontaminacao $relatorio,
         Veiculo $veiculo
     ) {
-        $compartimentos = $veiculo->compartimentos()
-            ->with('produtoAtual')
-            ->orderBy('numero')
-            ->get();
+        $count = max(1, (int) $veiculo->numero_compartimentos);
 
-        return $compartimentos->map(function (VeiculoCompartimento $comp) use ($relatorio) {
+        return collect(range(1, $count))->map(function (int $numero) use ($relatorio) {
             return RelatorioCompartimento::create([
                 'relatorio_id' => $relatorio->id,
-                'compartimento_origem_id' => $comp->id,
-                'numero' => $comp->numero,
-                'capacidade_litros' => $comp->capacidade_litros,
-                'produto_anterior_nome' => $comp->produtoAtual?->nome,
+                'compartimento_origem_id' => null,
+                'numero' => $numero,
+                'capacidade_litros' => null,
+                'produto_anterior_nome' => null,
             ]);
         });
     }

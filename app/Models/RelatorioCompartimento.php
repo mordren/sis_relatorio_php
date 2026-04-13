@@ -16,6 +16,13 @@ class RelatorioCompartimento extends Model
         'numero',
         'capacidade_litros',
         'produto_anterior_nome',
+        'numero_onu',
+        'classe_risco',
+        'pressao_vapor',
+        'tempo_minutos',
+        'massa_vapor',
+        'volume_ar',
+        'neutralizante',
         'lacre_entrada_numero',
         'lacre_saida_numero',
         'observacao',
@@ -26,6 +33,10 @@ class RelatorioCompartimento extends Model
         return [
             'numero' => 'integer',
             'capacidade_litros' => 'decimal:2',
+            'pressao_vapor' => 'decimal:4',
+            'tempo_minutos' => 'integer',
+            'massa_vapor' => 'decimal:4',
+            'volume_ar' => 'decimal:4',
         ];
     }
 

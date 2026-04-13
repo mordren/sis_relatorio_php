@@ -34,8 +34,18 @@ class UpdateRelatorioRequest extends FormRequest
             'compartimentos' => ['required', 'array', 'min:1'],
             'compartimentos.*.id' => ['required', 'integer'],
             'compartimentos.*.numero' => ['required', 'integer', 'min:1'],
-            'compartimentos.*.capacidade_litros' => ['required', 'numeric', 'gt:0'],
+            // capacidade_litros is filled on the edit page; nullable at this point
+            'compartimentos.*.capacidade_litros' => ['nullable', 'numeric', 'gt:0'],
             'compartimentos.*.produto_anterior_nome' => ['nullable', 'string', 'max:255'],
+            // SRD chemical / product fields
+            'compartimentos.*.numero_onu' => ['nullable', 'string', 'max:50'],
+            'compartimentos.*.classe_risco' => ['nullable', 'string', 'max:100'],
+            'compartimentos.*.pressao_vapor' => ['nullable', 'numeric', 'min:0'],
+            'compartimentos.*.tempo_minutos' => ['nullable', 'integer', 'min:0'],
+            'compartimentos.*.massa_vapor' => ['nullable', 'numeric', 'min:0'],
+            'compartimentos.*.volume_ar' => ['nullable', 'numeric', 'min:0'],
+            'compartimentos.*.neutralizante' => ['nullable', 'string', 'max:255'],
+            // Seal fields
             'compartimentos.*.lacre_entrada_numero' => ['nullable', 'string', 'max:255'],
             'compartimentos.*.lacre_saida_numero' => ['nullable', 'string', 'max:255'],
             'compartimentos.*.observacao' => ['nullable', 'string', 'max:2000'],
@@ -93,8 +103,11 @@ class UpdateRelatorioRequest extends FormRequest
             'compartimentos.min' => 'Pelo menos um compartimento é obrigatório.',
             'compartimentos.*.numero.required' => 'O número do compartimento é obrigatório.',
             'compartimentos.*.numero.min' => 'O número do compartimento deve ser maior que zero.',
-            'compartimentos.*.capacidade_litros.required' => 'A capacidade é obrigatória.',
             'compartimentos.*.capacidade_litros.gt' => 'A capacidade deve ser maior que zero.',
+            'compartimentos.*.tempo_minutos.min' => 'O tempo deve ser zero ou maior.',
+            'compartimentos.*.pressao_vapor.min' => 'A pressão deve ser zero ou maior.',
+            'compartimentos.*.massa_vapor.min' => 'A massa de vapor deve ser zero ou maior.',
+            'compartimentos.*.volume_ar.min' => 'O volume de ar deve ser zero ou maior.',
         ];
     }
 }

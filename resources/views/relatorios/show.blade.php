@@ -137,37 +137,116 @@
 
 {{-- Compartimentos snapshot --}}
 <div class="card shadow-sm mb-4">
-    <div class="card-header bg-white">
+    <div class="card-header bg-white d-flex align-items-center justify-content-between">
         <h6 class="mb-0"><i class="bi bi-layout-split"></i> Compartimentos (snapshot)</h6>
+        <small class="text-muted">{{ $relatorio->compartimentos->count() }} compartimento(s)</small>
     </div>
     @if($relatorio->compartimentos->isEmpty())
         <div class="card-body text-muted">Nenhum compartimento registrado.</div>
     @else
-        <div class="table-responsive">
-            <table class="table table-sm table-hover mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>Nº</th>
-                        <th>Capacidade (L)</th>
-                        <th>Produto Anterior</th>
-                        <th>Lacre Entrada</th>
-                        <th>Lacre Saída</th>
-                        <th>Observação</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($relatorio->compartimentos->sortBy('numero') as $comp)
-                    <tr>
-                        <td>{{ $comp->numero }}</td>
-                        <td>{{ number_format($comp->capacidade_litros, 2, ',', '.') }}</td>
-                        <td>{{ $comp->produto_anterior_nome ?? '-' }}</td>
-                        <td>{{ $comp->lacre_entrada_numero ?? '-' }}</td>
-                        <td>{{ $comp->lacre_saida_numero ?? '-' }}</td>
-                        <td>{{ $comp->observacao ?? '-' }}</td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
+        <div class="accordion accordion-flush" id="accordionShowCompartimentos">
+        @foreach($relatorio->compartimentos->sortBy('numero') as $i => $comp)
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button {{ $i > 0 ? 'collapsed' : '' }}"
+                            type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#scomp-{{ $i }}"
+                            aria-expanded="{{ $i === 0 ? 'true' : 'false' }}">
+                        <i class="bi bi-circle me-2"></i>
+                        Compartimento <strong class="ms-1">#{{ $comp->numero }}</strong>
+                        @if($comp->produto_anterior_nome)
+                            <span class="ms-2 text-muted small fw-normal">— {{ $comp->produto_anterior_nome }}</span>
+                        @endif
+                    </button>
+                </h2>
+                <div id="scomp-{{ $i }}"
+                     class="accordion-collapse collapse {{ $i === 0 ? 'show' : '' }}"
+                     data-bs-parent="#accordionShowCompartimentos">
+                    <div class="accordion-body">
+                        <div class="row g-3">
+                            @if($comp->capacidade_litros !== null)
+                                <div class="col-6 col-sm-3 col-md-2">
+                                    <div class="text-muted small">Capacidade (L)</div>
+                                    <div>{{ number_format($comp->capacidade_litros, 2, ',', '.') }}</div>
+                                </div>
+                            @endif
+                            @if($comp->produto_anterior_nome)
+                                <div class="col-6 col-sm-4">
+                                    <div class="text-muted small">Produto</div>
+                                    <div>{{ $comp->produto_anterior_nome }}</div>
+                                </div>
+                            @endif
+                            @if($comp->numero_onu)
+                                <div class="col-6 col-sm-2">
+                                    <div class="text-muted small">Nº ONU</div>
+                                    <div>{{ $comp->numero_onu }}</div>
+                                </div>
+                            @endif
+                            @if($comp->classe_risco)
+                                <div class="col-6 col-sm-3">
+                                    <div class="text-muted small">Classe de Risco</div>
+                                    <div>{{ $comp->classe_risco }}</div>
+                                </div>
+                            @endif
+                            @if($comp->pressao_vapor !== null)
+                                <div class="col-6 col-sm-2">
+                                    <div class="text-muted small">Pressão Vapor</div>
+                                    <div>{{ $comp->pressao_vapor }}</div>
+                                </div>
+                            @endif
+                            @if($comp->tempo_minutos !== null)
+                                <div class="col-6 col-sm-2">
+                                    <div class="text-muted small">Tempo (min)</div>
+                                    <div>{{ $comp->tempo_minutos }}</div>
+                                </div>
+                            @endif
+                            @if($comp->massa_vapor !== null)
+                                <div class="col-6 col-sm-2">
+                                    <div class="text-muted small">Massa Vapor (kg)</div>
+                                    <div>{{ $comp->massa_vapor }}</div>
+                                </div>
+                            @endif
+                            @if($comp->volume_ar !== null)
+                                <div class="col-6 col-sm-2">
+                                    <div class="text-muted small">Volume Ar (m³)</div>
+                                    <div>{{ $comp->volume_ar }}</div>
+                                </div>
+                            @endif
+                            @if($comp->neutralizante)
+                                <div class="col-6 col-sm-3">
+                                    <div class="text-muted small">Neutralizante</div>
+                                    <div>{{ $comp->neutralizante }}</div>
+                                </div>
+                            @endif
+                            @if($comp->lacre_entrada_numero)
+                                <div class="col-6 col-sm-3">
+                                    <div class="text-muted small">Lacre Entrada</div>
+                                    <div>{{ $comp->lacre_entrada_numero }}</div>
+                                </div>
+                            @endif
+                            @if($comp->lacre_saida_numero)
+                                <div class="col-6 col-sm-3">
+                                    <div class="text-muted small">Lacre Saída</div>
+                                    <div>{{ $comp->lacre_saida_numero }}</div>
+                                </div>
+                            @endif
+                            @if($comp->observacao)
+                                <div class="col-12">
+                                    <div class="text-muted small">Observação</div>
+                                    <div>{{ $comp->observacao }}</div>
+                                </div>
+                            @endif
+                            @if(!$comp->capacidade_litros && !$comp->produto_anterior_nome && !$comp->numero_onu && !$comp->tempo_minutos)
+                                <div class="col-12 text-muted small fst-italic">
+                                    Sem dados preenchidos — edite o relatório para completar este compartimento.
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endforeach
         </div>
     @endif
 </div>

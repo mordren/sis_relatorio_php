@@ -17,6 +17,7 @@ class Veiculo extends Model
         'marca',
         'ano',
         'tipo_veiculo',
+        'numero_compartimentos',
         'proprietario_id',
         'ativo',
     ];
@@ -25,6 +26,7 @@ class Veiculo extends Model
     {
         return [
             'ano' => 'integer',
+            'numero_compartimentos' => 'integer',
             'ativo' => 'boolean',
         ];
     }

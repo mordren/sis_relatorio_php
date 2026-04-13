@@ -18,6 +18,7 @@ class VeiculoFactory extends Factory
             'marca' => fake()->randomElement(['Volvo', 'Scania', 'Mercedes-Benz', 'DAF', 'Iveco']),
             'ano' => fake()->numberBetween(2000, date('Y')),
             'tipo_veiculo' => fake()->randomElement(['Caminhão Tanque', 'Carreta', 'Bitrem', 'Rodotrem']),
+            'numero_compartimentos' => 1,
             'proprietario_id' => null,
             'ativo' => true,
         ];

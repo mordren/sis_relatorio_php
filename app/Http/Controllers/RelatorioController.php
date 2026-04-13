@@ -128,8 +128,15 @@ class RelatorioController extends Controller
                     ->where('relatorio_id', $relatorio->id)
                     ->update([
                         'numero' => $data['numero'],
-                        'capacidade_litros' => $data['capacidade_litros'],
+                        'capacidade_litros' => $data['capacidade_litros'] ?? null,
                         'produto_anterior_nome' => $data['produto_anterior_nome'] ?? null,
+                        'numero_onu' => $data['numero_onu'] ?? null,
+                        'classe_risco' => $data['classe_risco'] ?? null,
+                        'pressao_vapor' => $data['pressao_vapor'] ?? null,
+                        'tempo_minutos' => $data['tempo_minutos'] ?? null,
+                        'massa_vapor' => $data['massa_vapor'] ?? null,
+                        'volume_ar' => $data['volume_ar'] ?? null,
+                        'neutralizante' => $data['neutralizante'] ?? null,
                         'lacre_entrada_numero' => $data['lacre_entrada_numero'] ?? null,
                         'lacre_saida_numero' => $data['lacre_saida_numero'] ?? null,
                         'observacao' => $data['observacao'] ?? null,
