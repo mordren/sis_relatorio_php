@@ -122,6 +122,10 @@ class SnapshotService
         array $equipamentosData = []
     ): RelatorioDescontaminacao {
         return DB::transaction(function () use ($reportData, $finalidadesData, $cliente, $veiculo, $equipamentosData) {
+            // Generate the next report number atomically to prevent race conditions.
+            $maxNumber = RelatorioDescontaminacao::lockForUpdate()->max('numero_relatorio') ?? 0;
+            $reportData['numero_relatorio'] = (int) $maxNumber + 1;
+
             $relatorio = RelatorioDescontaminacao::create($reportData);
 
             $this->createClienteSnapshot($relatorio, $cliente);

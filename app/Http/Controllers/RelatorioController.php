@@ -6,7 +6,6 @@ use App\Enums\FinalidadeRelatorio;
 use App\Enums\ProcessoRelatorio;
 use App\Http\Requests\StoreRelatorioRequest;
 use App\Models\Cliente;
-use App\Models\RelatorioDescontaminacao;
 use App\Models\User;
 use App\Models\Veiculo;
 use App\Services\SnapshotService;
@@ -27,19 +26,12 @@ class RelatorioController extends Controller
         $processos = ProcessoRelatorio::cases();
         $finalidades = FinalidadeRelatorio::cases();
 
-        // Generate next report number suggestion
-        $lastReport = RelatorioDescontaminacao::orderByDesc('id')->first();
-        $nextNumber = $lastReport
-            ? 'REL-' . str_pad((intval(str_replace('REL-', '', $lastReport->numero_relatorio)) + 1), 6, '0', STR_PAD_LEFT)
-            : 'REL-000001';
-
         return view('relatorios.create', compact(
             'clientes',
             'veiculos',
             'responsaveis',
             'processos',
-            'finalidades',
-            'nextNumber'
+            'finalidades'
         ));
     }
 
@@ -50,7 +42,6 @@ class RelatorioController extends Controller
         $veiculo = Veiculo::findOrFail($validated['veiculo_id']);
 
         $reportData = [
-            'numero_relatorio' => $validated['numero_relatorio'],
             'status' => 'RASCUNHO',
             'data_servico' => $validated['data_servico'],
             'responsavel_tecnico_id' => $validated['responsavel_tecnico_id'],

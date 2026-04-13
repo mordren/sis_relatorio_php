@@ -30,25 +30,9 @@ class RelatorioTest extends TestCase
         $this->veiculo = Veiculo::factory()->create();
     }
 
-    public function test_create_page_requires_authentication(): void
+    private function validPayload(array $overrides = []): array
     {
-        $response = $this->get(route('relatorios.create'));
-
-        $response->assertRedirect('/login');
-    }
-
-    public function test_create_page_is_accessible(): void
-    {
-        $response = $this->actingAs($this->user)->get(route('relatorios.create'));
-
-        $response->assertStatus(200);
-        $response->assertSee('Novo Relatório de Descontaminação');
-    }
-
-    public function test_can_create_basic_report(): void
-    {
-        $response = $this->actingAs($this->user)->post(route('relatorios.store'), [
-            'numero_relatorio' => 'REL-000001',
+        return array_merge([
             'data_servico' => '2024-06-15',
             'responsavel_tecnico_id' => $this->user->id,
             'processo' => ProcessoRelatorio::LAVAGEM->value,
@@ -57,34 +41,54 @@ class RelatorioTest extends TestCase
             'finalidades' => [
                 ['finalidade' => FinalidadeRelatorio::MANUTENCAO->value, 'descricao_outros' => ''],
             ],
-        ]);
+        ], $overrides);
+    }
+
+    public function test_create_page_requires_authentication(): void
+    {
+        $response = $this->get(route('relatorios.create'));
+        $response->assertRedirect('/login');
+    }
+
+    public function test_create_page_is_accessible(): void
+    {
+        $response = $this->actingAs($this->user)->get(route('relatorios.create'));
+        $response->assertStatus(200);
+        $response->assertSee('Novo Relatório de Descontaminação');
+    }
+
+    public function test_can_create_basic_report(): void
+    {
+        $response = $this->actingAs($this->user)->post(route('relatorios.store'), $this->validPayload());
 
         $response->assertRedirect(route('dashboard'));
         $response->assertSessionHas('success');
 
         $this->assertDatabaseHas('relatorio_descontaminacoes', [
-            'numero_relatorio' => 'REL-000001',
             'status' => StatusRelatorio::RASCUNHO->value,
             'processo' => ProcessoRelatorio::LAVAGEM->value,
             'criado_por_id' => $this->user->id,
         ]);
     }
 
+    public function test_report_number_is_numeric_and_auto_increments(): void
+    {
+        $this->actingAs($this->user)->post(route('relatorios.store'), $this->validPayload());
+        $first = RelatorioDescontaminacao::latest('id')->first();
+        $this->assertEquals(1, $first->numero_relatorio);
+
+        $this->actingAs($this->user)->post(route('relatorios.store'), $this->validPayload());
+        $second = RelatorioDescontaminacao::latest('id')->first();
+        $this->assertEquals(2, $second->numero_relatorio);
+    }
+
     public function test_report_creates_frozen_client_snapshot(): void
     {
-        $this->actingAs($this->user)->post(route('relatorios.store'), [
-            'numero_relatorio' => 'REL-000002',
-            'data_servico' => '2024-06-15',
-            'responsavel_tecnico_id' => $this->user->id,
+        $this->actingAs($this->user)->post(route('relatorios.store'), $this->validPayload([
             'processo' => ProcessoRelatorio::VAPOR->value,
-            'cliente_id' => $this->cliente->id,
-            'veiculo_id' => $this->veiculo->id,
-            'finalidades' => [
-                ['finalidade' => FinalidadeRelatorio::INSPECAO->value, 'descricao_outros' => ''],
-            ],
-        ]);
+        ]));
 
-        $relatorio = RelatorioDescontaminacao::where('numero_relatorio', 'REL-000002')->first();
+        $relatorio = RelatorioDescontaminacao::latest('id')->first();
         $this->assertNotNull($relatorio);
 
         $snapshot = $relatorio->clienteSnapshot;
@@ -97,19 +101,11 @@ class RelatorioTest extends TestCase
 
     public function test_report_creates_frozen_vehicle_snapshot(): void
     {
-        $this->actingAs($this->user)->post(route('relatorios.store'), [
-            'numero_relatorio' => 'REL-000003',
-            'data_servico' => '2024-06-15',
-            'responsavel_tecnico_id' => $this->user->id,
+        $this->actingAs($this->user)->post(route('relatorios.store'), $this->validPayload([
             'processo' => ProcessoRelatorio::QUIMICO->value,
-            'cliente_id' => $this->cliente->id,
-            'veiculo_id' => $this->veiculo->id,
-            'finalidades' => [
-                ['finalidade' => FinalidadeRelatorio::CERTIFICACAO->value, 'descricao_outros' => ''],
-            ],
-        ]);
+        ]));
 
-        $relatorio = RelatorioDescontaminacao::where('numero_relatorio', 'REL-000003')->first();
+        $relatorio = RelatorioDescontaminacao::latest('id')->first();
         $snapshot = $relatorio->veiculoSnapshot;
         $this->assertNotNull($snapshot);
         $this->assertEquals($this->veiculo->id, $snapshot->veiculo_origem_id);
@@ -136,19 +132,13 @@ class RelatorioTest extends TestCase
             'produto_atual_id' => null,
         ]);
 
-        $this->actingAs($this->user)->post(route('relatorios.store'), [
-            'numero_relatorio' => 'REL-000004',
-            'data_servico' => '2024-06-15',
-            'responsavel_tecnico_id' => $this->user->id,
-            'processo' => ProcessoRelatorio::LAVAGEM->value,
-            'cliente_id' => $this->cliente->id,
-            'veiculo_id' => $this->veiculo->id,
+        $this->actingAs($this->user)->post(route('relatorios.store'), $this->validPayload([
             'finalidades' => [
                 ['finalidade' => FinalidadeRelatorio::TROCA_PRODUTO->value, 'descricao_outros' => ''],
             ],
-        ]);
+        ]));
 
-        $relatorio = RelatorioDescontaminacao::where('numero_relatorio', 'REL-000004')->first();
+        $relatorio = RelatorioDescontaminacao::latest('id')->first();
         $compartimentos = $relatorio->compartimentos()->orderBy('numero')->get();
 
         $this->assertCount(2, $compartimentos);
@@ -163,155 +153,79 @@ class RelatorioTest extends TestCase
     {
         $originalNome = $this->cliente->nome_razao_social;
 
-        $this->actingAs($this->user)->post(route('relatorios.store'), [
-            'numero_relatorio' => 'REL-000005',
-            'data_servico' => '2024-06-15',
-            'responsavel_tecnico_id' => $this->user->id,
-            'processo' => ProcessoRelatorio::LAVAGEM->value,
-            'cliente_id' => $this->cliente->id,
-            'veiculo_id' => $this->veiculo->id,
-            'finalidades' => [
-                ['finalidade' => FinalidadeRelatorio::MANUTENCAO->value, 'descricao_outros' => ''],
-            ],
-        ]);
+        $this->actingAs($this->user)->post(route('relatorios.store'), $this->validPayload());
 
-        // Update the live client data
         $this->cliente->update(['nome_razao_social' => 'Nome Totalmente Diferente']);
 
-        // Verify the snapshot still has the original value
-        $relatorio = RelatorioDescontaminacao::where('numero_relatorio', 'REL-000005')->first();
+        $relatorio = RelatorioDescontaminacao::latest('id')->first();
         $this->assertEquals($originalNome, $relatorio->clienteSnapshot->nome_razao_social);
     }
 
     public function test_report_creates_finalidades(): void
     {
-        $this->actingAs($this->user)->post(route('relatorios.store'), [
-            'numero_relatorio' => 'REL-000006',
-            'data_servico' => '2024-06-15',
-            'responsavel_tecnico_id' => $this->user->id,
-            'processo' => ProcessoRelatorio::LAVAGEM->value,
-            'cliente_id' => $this->cliente->id,
-            'veiculo_id' => $this->veiculo->id,
+        $this->actingAs($this->user)->post(route('relatorios.store'), $this->validPayload([
             'finalidades' => [
                 ['finalidade' => FinalidadeRelatorio::MANUTENCAO->value, 'descricao_outros' => ''],
                 ['finalidade' => FinalidadeRelatorio::CERTIFICACAO->value, 'descricao_outros' => ''],
             ],
-        ]);
+        ]));
 
-        $relatorio = RelatorioDescontaminacao::where('numero_relatorio', 'REL-000006')->first();
+        $relatorio = RelatorioDescontaminacao::latest('id')->first();
         $this->assertCount(2, $relatorio->finalidades);
     }
 
     public function test_outros_finalidade_requires_description(): void
     {
-        $response = $this->actingAs($this->user)->post(route('relatorios.store'), [
-            'numero_relatorio' => 'REL-000007',
-            'data_servico' => '2024-06-15',
-            'responsavel_tecnico_id' => $this->user->id,
-            'processo' => ProcessoRelatorio::LAVAGEM->value,
-            'cliente_id' => $this->cliente->id,
-            'veiculo_id' => $this->veiculo->id,
+        $response = $this->actingAs($this->user)->post(route('relatorios.store'), $this->validPayload([
             'finalidades' => [
                 ['finalidade' => FinalidadeRelatorio::OUTROS->value, 'descricao_outros' => ''],
             ],
-        ]);
+        ]));
 
         $response->assertSessionHasErrors();
     }
 
     public function test_duplicate_finalidades_are_rejected(): void
     {
-        $response = $this->actingAs($this->user)->post(route('relatorios.store'), [
-            'numero_relatorio' => 'REL-000008',
-            'data_servico' => '2024-06-15',
-            'responsavel_tecnico_id' => $this->user->id,
-            'processo' => ProcessoRelatorio::LAVAGEM->value,
-            'cliente_id' => $this->cliente->id,
-            'veiculo_id' => $this->veiculo->id,
+        $response = $this->actingAs($this->user)->post(route('relatorios.store'), $this->validPayload([
             'finalidades' => [
                 ['finalidade' => FinalidadeRelatorio::MANUTENCAO->value, 'descricao_outros' => ''],
                 ['finalidade' => FinalidadeRelatorio::MANUTENCAO->value, 'descricao_outros' => ''],
             ],
-        ]);
+        ]));
 
         $response->assertSessionHasErrors('finalidades');
     }
 
-    public function test_numero_relatorio_must_be_unique(): void
-    {
-        RelatorioDescontaminacao::factory()->create([
-            'numero_relatorio' => 'REL-000001',
-            'responsavel_tecnico_id' => $this->user->id,
-        ]);
-
-        $response = $this->actingAs($this->user)->post(route('relatorios.store'), [
-            'numero_relatorio' => 'REL-000001',
-            'data_servico' => '2024-06-15',
-            'responsavel_tecnico_id' => $this->user->id,
-            'processo' => ProcessoRelatorio::LAVAGEM->value,
-            'cliente_id' => $this->cliente->id,
-            'veiculo_id' => $this->veiculo->id,
-            'finalidades' => [
-                ['finalidade' => FinalidadeRelatorio::MANUTENCAO->value, 'descricao_outros' => ''],
-            ],
-        ]);
-
-        $response->assertSessionHasErrors('numero_relatorio');
-    }
-
     public function test_lacre_entrada_required_when_lacre_saida_filled(): void
     {
-        $response = $this->actingAs($this->user)->post(route('relatorios.store'), [
-            'numero_relatorio' => 'REL-000009',
-            'data_servico' => '2024-06-15',
-            'responsavel_tecnico_id' => $this->user->id,
-            'processo' => ProcessoRelatorio::LAVAGEM->value,
-            'cliente_id' => $this->cliente->id,
-            'veiculo_id' => $this->veiculo->id,
+        $response = $this->actingAs($this->user)->post(route('relatorios.store'), $this->validPayload([
             'lacre_saida' => 'LAC-OUT-001',
-            'finalidades' => [
-                ['finalidade' => FinalidadeRelatorio::MANUTENCAO->value, 'descricao_outros' => ''],
-            ],
-        ]);
+        ]));
 
         $response->assertSessionHasErrors('lacre_entrada');
     }
 
     public function test_lacre_saida_with_lacre_entrada_is_valid(): void
     {
-        $response = $this->actingAs($this->user)->post(route('relatorios.store'), [
-            'numero_relatorio' => 'REL-000010',
-            'data_servico' => '2024-06-15',
-            'responsavel_tecnico_id' => $this->user->id,
-            'processo' => ProcessoRelatorio::LAVAGEM->value,
-            'cliente_id' => $this->cliente->id,
-            'veiculo_id' => $this->veiculo->id,
+        $response = $this->actingAs($this->user)->post(route('relatorios.store'), $this->validPayload([
             'lacre_entrada' => 'LAC-IN-001',
             'lacre_saida' => 'LAC-OUT-001',
-            'finalidades' => [
-                ['finalidade' => FinalidadeRelatorio::MANUTENCAO->value, 'descricao_outros' => ''],
-            ],
-        ]);
+        ]));
 
         $response->assertRedirect(route('dashboard'));
         $response->assertSessionHas('success');
 
-        $relatorio = RelatorioDescontaminacao::where('numero_relatorio', 'REL-000010')->first();
+        $relatorio = RelatorioDescontaminacao::latest('id')->first();
         $this->assertEquals('LAC-IN-001', $relatorio->lacre_entrada);
         $this->assertEquals('LAC-OUT-001', $relatorio->lacre_saida);
     }
 
     public function test_at_least_one_finalidade_is_required(): void
     {
-        $response = $this->actingAs($this->user)->post(route('relatorios.store'), [
-            'numero_relatorio' => 'REL-000011',
-            'data_servico' => '2024-06-15',
-            'responsavel_tecnico_id' => $this->user->id,
-            'processo' => ProcessoRelatorio::LAVAGEM->value,
-            'cliente_id' => $this->cliente->id,
-            'veiculo_id' => $this->veiculo->id,
+        $response = $this->actingAs($this->user)->post(route('relatorios.store'), $this->validPayload([
             'finalidades' => [],
-        ]);
+        ]));
 
         $response->assertSessionHasErrors('finalidades');
     }

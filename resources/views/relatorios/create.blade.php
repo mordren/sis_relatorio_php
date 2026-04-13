@@ -23,16 +23,10 @@
 
                         <div class="row mb-3">
                             <div class="col-md-4">
-                                <label for="numero_relatorio" class="form-label">Nº do Relatório <span class="text-danger">*</span></label>
-                                <input type="text"
-                                       class="form-control @error('numero_relatorio') is-invalid @enderror"
-                                       id="numero_relatorio"
-                                       name="numero_relatorio"
-                                       value="{{ old('numero_relatorio', $nextNumber) }}"
-                                       required>
-                                @error('numero_relatorio')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                                <label class="form-label">Nº do Relatório</label>
+                                <div class="form-control-plaintext text-muted fst-italic">
+                                    <i class="bi bi-hash"></i> Gerado automaticamente ao salvar
+                                </div>
                             </div>
 
                             <div class="col-md-4">

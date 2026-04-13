@@ -129,7 +129,6 @@ class SnapshotServiceTest extends TestCase
         ]);
 
         $reportData = [
-            'numero_relatorio' => 'REL-TX-001',
             'status' => 'RASCUNHO',
             'data_servico' => '2024-06-15',
             'responsavel_tecnico_id' => $this->user->id,
@@ -150,6 +149,8 @@ class SnapshotServiceTest extends TestCase
         );
 
         $this->assertNotNull($relatorio->id);
+        $this->assertIsInt($relatorio->numero_relatorio);
+        $this->assertGreaterThanOrEqual(1, $relatorio->numero_relatorio);
         $this->assertNotNull($relatorio->clienteSnapshot);
         $this->assertNotNull($relatorio->veiculoSnapshot);
         $this->assertCount(2, $relatorio->finalidades);

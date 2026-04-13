@@ -15,7 +15,7 @@ class RelatorioDescontaminacaoFactory extends Factory
     public function definition(): array
     {
         return [
-            'numero_relatorio' => 'REL-' . fake()->unique()->numerify('######'),
+            'numero_relatorio' => fake()->unique()->numberBetween(1, 999999),
             'status' => StatusRelatorio::RASCUNHO,
             'data_servico' => fake()->date(),
             'responsavel_tecnico_id' => User::factory(),

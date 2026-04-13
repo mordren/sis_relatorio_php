@@ -4,7 +4,6 @@ namespace App\Http\Requests;
 
 use App\Enums\FinalidadeRelatorio;
 use App\Enums\ProcessoRelatorio;
-use App\Enums\StatusRelatorio;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -18,12 +17,6 @@ class StoreRelatorioRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'numero_relatorio' => [
-                'required',
-                'string',
-                'max:50',
-                Rule::unique('relatorio_descontaminacoes', 'numero_relatorio'),
-            ],
             'data_servico' => ['required', 'date'],
             'responsavel_tecnico_id' => ['required', 'exists:users,id'],
             'processo' => ['required', Rule::enum(ProcessoRelatorio::class)],
@@ -79,8 +72,6 @@ class StoreRelatorioRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'numero_relatorio.required' => 'O número do relatório é obrigatório.',
-            'numero_relatorio.unique' => 'Este número de relatório já existe.',
             'data_servico.required' => 'A data do serviço é obrigatória.',
             'responsavel_tecnico_id.required' => 'O responsável técnico é obrigatório.',
             'processo.required' => 'O processo é obrigatório.',

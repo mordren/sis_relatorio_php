@@ -34,6 +34,7 @@ class RelatorioDescontaminacao extends Model
     protected function casts(): array
     {
         return [
+            'numero_relatorio' => 'integer',
             'status' => StatusRelatorio::class,
             'processo' => ProcessoRelatorio::class,
             'data_servico' => 'date',
