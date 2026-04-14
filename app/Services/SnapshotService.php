@@ -123,9 +123,20 @@ class SnapshotService
         array $equipamentosData = []
     ): RelatorioDescontaminacao {
         return DB::transaction(function () use ($reportData, $finalidadesData, $cliente, $veiculo, $equipamentosData) {
-            // Generate the next report number atomically to prevent race conditions.
+            // Generate the next report number. We attempt to obtain the current
+            // max and increment it, but also defensively check for existence to
+            // avoid UNIQUE constraint violations (e.g. on DBs where locks are
+            // not available or when concurrent inserts exist).
             $maxNumber = RelatorioDescontaminacao::lockForUpdate()->max('numero_relatorio') ?? 0;
-            $reportData['numero_relatorio'] = (int) $maxNumber + 1;
+            $candidate = (int) $maxNumber + 1;
+
+            // If by any chance the candidate is already present (race or stale
+            // reads), increment until we find a free number.
+            while (RelatorioDescontaminacao::where('numero_relatorio', $candidate)->exists()) {
+                $candidate++;
+            }
+
+            $reportData['numero_relatorio'] = $candidate;
 
             $relatorio = RelatorioDescontaminacao::create($reportData);
 

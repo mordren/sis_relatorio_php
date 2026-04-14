@@ -1,10 +1,18 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('title', 'Novo Relatório de Descontaminação')
 
 @section('content')
 <div class="row justify-content-center">
-    <div class="col-lg-10">
+    <div class="col-lg-8">
+
+        @if(session('success'))
+            <div class="alert alert-success alert-dismissible fade show">
+                {{ session('success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        @endif
+
         <div class="card shadow-sm">
             <div class="card-header bg-white">
                 <h5 class="mb-0">
@@ -14,6 +22,9 @@
             <div class="card-body">
                 <form method="POST" action="{{ route('relatorios.store') }}" id="relatorioForm">
                     @csrf
+
+                    {{-- Fixed workflow values (VAPOR / VERIFICACAO_METROLOGICA) --}}
+                    {{-- These are not user-selectable in this flow --}}
 
                     {{-- Dados do Relatório --}}
                     <fieldset class="mb-4">
@@ -43,26 +54,6 @@
                             </div>
 
                             <div class="col-md-4">
-                                <label for="processo" class="form-label">Processo <span class="text-danger">*</span></label>
-                                <select class="form-select @error('processo') is-invalid @enderror"
-                                        id="processo"
-                                        name="processo"
-                                        required>
-                                    <option value="">Selecione...</option>
-                                    @foreach($processos as $processo)
-                                        <option value="{{ $processo->value }}" {{ old('processo') === $processo->value ? 'selected' : '' }}>
-                                            {{ $processo->label() }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                                @error('processo')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-                        </div>
-
-                        <div class="row mb-3">
-                            <div class="col-md-6">
                                 <label for="responsavel_tecnico_id" class="form-label">Responsável Técnico <span class="text-danger">*</span></label>
                                 <select class="form-select @error('responsavel_tecnico_id') is-invalid @enderror"
                                         id="responsavel_tecnico_id"
@@ -79,29 +70,22 @@
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
+                        </div>
 
-                            <div class="col-md-3">
-                                <label for="lacre_entrada" class="form-label">Lacre de Entrada</label>
-                                <input type="text"
-                                       class="form-control @error('lacre_entrada') is-invalid @enderror"
-                                       id="lacre_entrada"
-                                       name="lacre_entrada"
-                                       value="{{ old('lacre_entrada') }}">
-                                @error('lacre_entrada')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-
-                            <div class="col-md-3">
-                                <label for="lacre_saida" class="form-label">Lacre de Saída</label>
-                                <input type="text"
-                                       class="form-control @error('lacre_saida') is-invalid @enderror"
-                                       id="lacre_saida"
-                                       name="lacre_saida"
-                                       value="{{ old('lacre_saida') }}">
-                                @error('lacre_saida')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="d-flex gap-3">
+                                    <div class="text-muted small">
+                                        <i class="bi bi-fire text-warning"></i>
+                                        <strong>Processo:</strong> Vapor
+                                        <span class="badge bg-secondary ms-1">fixo</span>
+                                    </div>
+                                    <div class="text-muted small">
+                                        <i class="bi bi-list-check text-info"></i>
+                                        <strong>Finalidade:</strong> Verificação Metrológica
+                                        <span class="badge bg-secondary ms-1">fixo</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </fieldset>
@@ -121,8 +105,8 @@
                                         required>
                                     <option value="">Selecione um cliente...</option>
                                     @foreach($clientes as $cliente)
-                                        <option value="{{ $cliente->id }}" {{ old('cliente_id') == $cliente->id ? 'selected' : '' }}>
-                                            {{ $cliente->nome_razao_social }} - {{ $cliente->cpf_cnpj }}
+                                        <option value="{{ $cliente->id }}">
+                                            {{ $cliente->nome_razao_social }} ” {{ $cliente->cpf_cnpj }}
                                         </option>
                                     @endforeach
                                 </select>
@@ -130,109 +114,49 @@
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                                 <div class="form-text">
-                                    Os dados do cliente serão congelados no momento da criação do relatório.
+                                    Os dados do cliente serão congelados no momento da criação do Relatório.
                                 </div>
                             </div>
                             <div class="col-md-4 d-flex align-items-end">
                                 <a href="{{ route('clientes.create') }}" class="btn btn-outline-secondary btn-sm">
-                                    <i class="bi bi-plus"></i> Cadastrar Novo
+                                    <i class="bi bi-plus"></i> Cadastrar Novo Cliente
                                 </a>
                             </div>
                         </div>
                     </fieldset>
 
-                    {{-- Veículo --}}
+                    {{-- Veículo (dependent on Cliente) --}}
                     <fieldset class="mb-4">
                         <legend class="h6 border-bottom pb-2 mb-3">
                             <i class="bi bi-truck"></i> Veículo
                         </legend>
 
+                        @error('veiculo_id')
+                            <div class="alert alert-danger py-2 mb-2">{{ $message }}</div>
+                        @enderror
+
                         <div class="row mb-3">
                             <div class="col-md-8">
                                 <label for="veiculo_id" class="form-label">Selecionar Veículo <span class="text-danger">*</span></label>
-                                <select class="form-select @error('veiculo_id') is-invalid @enderror"
+                                <select class="form-select"
                                         id="veiculo_id"
                                         name="veiculo_id"
-                                        required>
-                                    <option value="">Selecione um veículo...</option>
-                                    @foreach($veiculos as $veiculo)
-                                        <option value="{{ $veiculo->id }}" {{ old('veiculo_id') == $veiculo->id ? 'selected' : '' }}>
-                                            {{ $veiculo->placa }} - {{ $veiculo->marca }} {{ $veiculo->modelo }}
-                                        </option>
-                                    @endforeach
+                                        required
+                                        disabled>
+                                    <option value="">” Selecione um cliente primeiro ”</option>
                                 </select>
-                                @error('veiculo_id')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                                <div class="form-text">
-                                    Os dados do veículo e seus compartimentos serão congelados no momento da criação do relatório.
+                                <div class="form-text" id="veiculo-hint">
+                                    Selecione um cliente para ver os Veículos disponíveis.
                                 </div>
                             </div>
                             <div class="col-md-4 d-flex align-items-end">
-                                <a href="{{ route('veiculos.create') }}" class="btn btn-outline-secondary btn-sm">
-                                    <i class="bi bi-plus"></i> Cadastrar Novo
+                                <a id="add-veiculo-btn"
+                                   href="{{ route('veiculos.create') }}"
+                                   class="btn btn-outline-secondary btn-sm">
+                                    <i class="bi bi-plus"></i> Novo Veículo
                                 </a>
                             </div>
                         </div>
-                    </fieldset>
-
-                    {{-- Finalidades --}}
-                    <fieldset class="mb-4">
-                        <legend class="h6 border-bottom pb-2 mb-3">
-                            <i class="bi bi-list-check"></i> Finalidades <span class="text-danger">*</span>
-                        </legend>
-
-                        @error('finalidades')
-                            <div class="alert alert-danger py-2">{{ $message }}</div>
-                        @enderror
-
-                        <div id="finalidades-container">
-                            @php
-                                $oldFinalidades = old('finalidades', [['finalidade' => '', 'descricao_outros' => '']]);
-                            @endphp
-
-                            @foreach($oldFinalidades as $index => $oldFin)
-                            <div class="row mb-2 finalidade-row">
-                                <div class="col-md-4">
-                                    <select class="form-select @error("finalidades.{$index}.finalidade") is-invalid @enderror"
-                                            name="finalidades[{{ $index }}][finalidade]"
-                                            required>
-                                        <option value="">Selecione...</option>
-                                        @foreach($finalidades as $fin)
-                                            <option value="{{ $fin->value }}"
-                                                {{ ($oldFin['finalidade'] ?? '') === $fin->value ? 'selected' : '' }}>
-                                                {{ $fin->label() }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    @error("finalidades.{$index}.finalidade")
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                                <div class="col-md-5">
-                                    <input type="text"
-                                           class="form-control @error("finalidades.{$index}.descricao_outros") is-invalid @enderror"
-                                           name="finalidades[{{ $index }}][descricao_outros]"
-                                           value="{{ $oldFin['descricao_outros'] ?? '' }}"
-                                           placeholder="Descrição (se Outros)">
-                                    @error("finalidades.{$index}.descricao_outros")
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                                <div class="col-md-3">
-                                    @if($index > 0)
-                                        <button type="button" class="btn btn-outline-danger btn-sm remove-finalidade">
-                                            <i class="bi bi-trash"></i> Remover
-                                        </button>
-                                    @endif
-                                </div>
-                            </div>
-                            @endforeach
-                        </div>
-
-                        <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="add-finalidade">
-                            <i class="bi bi-plus"></i> Adicionar Finalidade
-                        </button>
                     </fieldset>
 
                     {{-- Observações --}}
@@ -257,8 +181,8 @@
                         <a href="{{ route('dashboard') }}" class="btn btn-outline-secondary">
                             <i class="bi bi-arrow-left"></i> Voltar
                         </a>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-check-lg"></i> Criar Relatório (Rascunho)
+                        <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
+                            <i class="bi bi-check-lg"></i>Imprimir Relatório
                         </button>
                     </div>
                 </form>
@@ -270,48 +194,80 @@
 
 @push('scripts')
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const container = document.getElementById('finalidades-container');
-    const addBtn = document.getElementById('add-finalidade');
-    let index = {{ count($oldFinalidades) }};
+document.addEventListener('DOMContentLoaded', function () {
+    const clienteSelect  = document.getElementById('cliente_id');
+    const veiculoSelect  = document.getElementById('veiculo_id');
+    const addVeiculoBtn  = document.getElementById('add-veiculo-btn');
+    const veiculoHint    = document.getElementById('veiculo-hint');
+    const submitBtn      = document.getElementById('submitBtn');
 
-    const finalidadeOptions = `
-        <option value="">Selecione...</option>
-        @foreach($finalidades as $fin)
-            <option value="{{ $fin->value }}">{{ $fin->label() }}</option>
-        @endforeach
-    `;
+    const baseVeiculoUrl = '{{ route("veiculos.create") }}';
 
-    addBtn.addEventListener('click', function() {
-        const row = document.createElement('div');
-        row.className = 'row mb-2 finalidade-row';
-        row.innerHTML = `
-            <div class="col-md-4">
-                <select class="form-select" name="finalidades[${index}][finalidade]" required>
-                    ${finalidadeOptions}
-                </select>
-            </div>
-            <div class="col-md-5">
-                <input type="text" class="form-control"
-                       name="finalidades[${index}][descricao_outros]"
-                       placeholder="Descrição (se Outros)">
-            </div>
-            <div class="col-md-3">
-                <button type="button" class="btn btn-outline-danger btn-sm remove-finalidade">
-                    <i class="bi bi-trash"></i> Remover
-                </button>
-            </div>
-        `;
-        container.appendChild(row);
-        index++;
-    });
+    // Read URL params for pre-selection (e.g. returning from vehicle creation)
+    const urlParams      = new URLSearchParams(window.location.search);
+    const initClienteId  = urlParams.get('cliente_id')   || '{{ old("cliente_id") }}';
+    const initVeiculoId  = urlParams.get('new_veiculo_id') || '{{ old("veiculo_id") }}';
 
-    container.addEventListener('click', function(e) {
-        const btn = e.target.closest('.remove-finalidade');
-        if (btn) {
-            btn.closest('.finalidade-row').remove();
+    function updateSubmitState() {
+        const hasCliente = clienteSelect.value !== '';
+        const hasVeiculo = veiculoSelect.value !== '';
+        submitBtn.disabled = !(hasCliente && hasVeiculo);
+    }
+
+    function loadVeiculos(clienteId, preSelectId) {
+        if (!clienteId) {
+            veiculoSelect.innerHTML = '<option value="">Selecione um cliente primeiro ”</option>';
+            veiculoSelect.disabled  = true;
+            addVeiculoBtn.href      = baseVeiculoUrl;
+            veiculoHint.textContent = 'Selecione um cliente para ver os Veículos disponíveis.';
+            updateSubmitState();
+            return;
         }
+
+        veiculoSelect.innerHTML = '<option value="">Carregando...</option>';
+        veiculoSelect.disabled  = true;
+
+        const newVeiculoUrl = `${baseVeiculoUrl}?cliente_id=${clienteId}&return_to=relatorios_create&return_cliente_id=${clienteId}`;
+        addVeiculoBtn.href  = newVeiculoUrl;
+
+        fetch(`/api/clientes/${clienteId}/veiculos`)
+            .then(function (r) { return r.json(); })
+            .then(function (veiculos) {
+                if (veiculos.length === 0) {
+                    veiculoSelect.innerHTML = '<option value="">Nenhum Veículo cadastrado para este cliente</option>';
+                    veiculoHint.textContent  = 'Clique em "+ Novo Veículo" para cadastrar um Veículo para este cliente.';
+                } else {
+                    veiculoSelect.innerHTML  = '<option value="">Selecione um Veículo...</option>';
+                    veiculos.forEach(function (v) {
+                        const opt     = document.createElement('option');
+                        opt.value     = v.id;
+                        opt.textContent = v.text + ' (' + v.numero_compartimentos + ' compart.)';
+                        if (preSelectId && String(v.id) === String(preSelectId)) {
+                            opt.selected = true;
+                        }
+                        veiculoSelect.appendChild(opt);
+                    });
+                    veiculoHint.textContent = 'Os dados do Veículo serão congelados no Relatório.';
+                }
+                veiculoSelect.disabled = false;
+                updateSubmitState();
+            })
+            .catch(function () {
+                veiculoSelect.innerHTML = '<option value="">Erro ao carregar Veículos</option>';
+                veiculoSelect.disabled  = true;
+            });
+    }
+
+    clienteSelect.addEventListener('change', function () {
+        loadVeiculos(this.value, null);
     });
+
+    veiculoSelect.addEventListener('change', updateSubmitState);
+
+    // Auto-initialize from URL params (e.g. after creating a new vehicle)
+    if (initClienteId) {
+        clienteSelect.value = initClienteId;
+        loadVeiculos(initClienteId, initVeiculoId);
+    }
 });
 </script>
-@endpush

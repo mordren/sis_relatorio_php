@@ -16,6 +16,9 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        // Seed the canonical product catalog first so vehicles/reports can reference them
+        $this->call(ProdutoCatalogSeeder::class);
+
         // Create admin user
         $admin = User::factory()->create([
             'name' => 'Administrador',

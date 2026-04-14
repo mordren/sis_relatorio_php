@@ -1,10 +1,19 @@
-
+﻿
 
 <?php $__env->startSection('title', 'Novo Relatório de Descontaminação'); ?>
 
 <?php $__env->startSection('content'); ?>
 <div class="row justify-content-center">
-    <div class="col-lg-10">
+    <div class="col-lg-8">
+
+        <?php if(session('success')): ?>
+            <div class="alert alert-success alert-dismissible fade show">
+                <?php echo e(session('success')); ?>
+
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        <?php endif; ?>
+
         <div class="card shadow-sm">
             <div class="card-header bg-white">
                 <h5 class="mb-0">
@@ -14,6 +23,9 @@
             <div class="card-body">
                 <form method="POST" action="<?php echo e(route('relatorios.store')); ?>" id="relatorioForm">
                     <?php echo csrf_field(); ?>
+
+                    
+                    
 
                     
                     <fieldset class="mb-4">
@@ -57,41 +69,6 @@ unset($__errorArgs, $__bag); ?>
                             </div>
 
                             <div class="col-md-4">
-                                <label for="processo" class="form-label">Processo <span class="text-danger">*</span></label>
-                                <select class="form-select <?php $__errorArgs = ['processo'];
-$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
-if ($__bag->has($__errorArgs[0])) :
-if (isset($message)) { $__messageOriginal = $message; }
-$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
-if (isset($__messageOriginal)) { $message = $__messageOriginal; }
-endif;
-unset($__errorArgs, $__bag); ?>"
-                                        id="processo"
-                                        name="processo"
-                                        required>
-                                    <option value="">Selecione...</option>
-                                    <?php $__currentLoopData = $processos; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $processo): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                        <option value="<?php echo e($processo->value); ?>" <?php echo e(old('processo') === $processo->value ? 'selected' : ''); ?>>
-                                            <?php echo e($processo->label()); ?>
-
-                                        </option>
-                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                                </select>
-                                <?php $__errorArgs = ['processo'];
-$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
-if ($__bag->has($__errorArgs[0])) :
-if (isset($message)) { $__messageOriginal = $message; }
-$message = $__bag->first($__errorArgs[0]); ?>
-                                    <div class="invalid-feedback"><?php echo e($message); ?></div>
-                                <?php unset($message);
-if (isset($__messageOriginal)) { $message = $__messageOriginal; }
-endif;
-unset($__errorArgs, $__bag); ?>
-                            </div>
-                        </div>
-
-                        <div class="row mb-3">
-                            <div class="col-md-6">
                                 <label for="responsavel_tecnico_id" class="form-label">Responsável Técnico <span class="text-danger">*</span></label>
                                 <select class="form-select <?php $__errorArgs = ['responsavel_tecnico_id'];
 $__bag = $errors->getBag($__errorArgs[1] ?? 'default');
@@ -123,57 +100,22 @@ if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>
                             </div>
+                        </div>
 
-                            <div class="col-md-3">
-                                <label for="lacre_entrada" class="form-label">Lacre de Entrada</label>
-                                <input type="text"
-                                       class="form-control <?php $__errorArgs = ['lacre_entrada'];
-$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
-if ($__bag->has($__errorArgs[0])) :
-if (isset($message)) { $__messageOriginal = $message; }
-$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
-if (isset($__messageOriginal)) { $message = $__messageOriginal; }
-endif;
-unset($__errorArgs, $__bag); ?>"
-                                       id="lacre_entrada"
-                                       name="lacre_entrada"
-                                       value="<?php echo e(old('lacre_entrada')); ?>">
-                                <?php $__errorArgs = ['lacre_entrada'];
-$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
-if ($__bag->has($__errorArgs[0])) :
-if (isset($message)) { $__messageOriginal = $message; }
-$message = $__bag->first($__errorArgs[0]); ?>
-                                    <div class="invalid-feedback"><?php echo e($message); ?></div>
-                                <?php unset($message);
-if (isset($__messageOriginal)) { $message = $__messageOriginal; }
-endif;
-unset($__errorArgs, $__bag); ?>
-                            </div>
-
-                            <div class="col-md-3">
-                                <label for="lacre_saida" class="form-label">Lacre de Saída</label>
-                                <input type="text"
-                                       class="form-control <?php $__errorArgs = ['lacre_saida'];
-$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
-if ($__bag->has($__errorArgs[0])) :
-if (isset($message)) { $__messageOriginal = $message; }
-$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
-if (isset($__messageOriginal)) { $message = $__messageOriginal; }
-endif;
-unset($__errorArgs, $__bag); ?>"
-                                       id="lacre_saida"
-                                       name="lacre_saida"
-                                       value="<?php echo e(old('lacre_saida')); ?>">
-                                <?php $__errorArgs = ['lacre_saida'];
-$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
-if ($__bag->has($__errorArgs[0])) :
-if (isset($message)) { $__messageOriginal = $message; }
-$message = $__bag->first($__errorArgs[0]); ?>
-                                    <div class="invalid-feedback"><?php echo e($message); ?></div>
-                                <?php unset($message);
-if (isset($__messageOriginal)) { $message = $__messageOriginal; }
-endif;
-unset($__errorArgs, $__bag); ?>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="d-flex gap-3">
+                                    <div class="text-muted small">
+                                        <i class="bi bi-fire text-warning"></i>
+                                        <strong>Processo:</strong> Vapor
+                                        <span class="badge bg-secondary ms-1">fixo</span>
+                                    </div>
+                                    <div class="text-muted small">
+                                        <i class="bi bi-list-check text-info"></i>
+                                        <strong>Finalidade:</strong> Verificação Metrológica
+                                        <span class="badge bg-secondary ms-1">fixo</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </fieldset>
@@ -200,8 +142,8 @@ unset($__errorArgs, $__bag); ?>"
                                         required>
                                     <option value="">Selecione um cliente...</option>
                                     <?php $__currentLoopData = $clientes; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $cliente): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                        <option value="<?php echo e($cliente->id); ?>" <?php echo e(old('cliente_id') == $cliente->id ? 'selected' : ''); ?>>
-                                            <?php echo e($cliente->nome_razao_social); ?> - <?php echo e($cliente->cpf_cnpj); ?>
+                                        <option value="<?php echo e($cliente->id); ?>">
+                                            <?php echo e($cliente->nome_razao_social); ?> ” <?php echo e($cliente->cpf_cnpj); ?>
 
                                         </option>
                                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
@@ -217,12 +159,12 @@ if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>
                                 <div class="form-text">
-                                    Os dados do cliente serão congelados no momento da criação do relatório.
+                                    Os dados do cliente serão congelados no momento da criação do Relatório.
                                 </div>
                             </div>
                             <div class="col-md-4 d-flex align-items-end">
                                 <a href="<?php echo e(route('clientes.create')); ?>" class="btn btn-outline-secondary btn-sm">
-                                    <i class="bi bi-plus"></i> Cadastrar Novo
+                                    <i class="bi bi-plus"></i> Cadastrar Novo Cliente
                                 </a>
                             </div>
                         </div>
@@ -234,143 +176,39 @@ unset($__errorArgs, $__bag); ?>
                             <i class="bi bi-truck"></i> Veículo
                         </legend>
 
-                        <div class="row mb-3">
-                            <div class="col-md-8">
-                                <label for="veiculo_id" class="form-label">Selecionar Veículo <span class="text-danger">*</span></label>
-                                <select class="form-select <?php $__errorArgs = ['veiculo_id'];
-$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
-if ($__bag->has($__errorArgs[0])) :
-if (isset($message)) { $__messageOriginal = $message; }
-$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
-if (isset($__messageOriginal)) { $message = $__messageOriginal; }
-endif;
-unset($__errorArgs, $__bag); ?>"
-                                        id="veiculo_id"
-                                        name="veiculo_id"
-                                        required>
-                                    <option value="">Selecione um veículo...</option>
-                                    <?php $__currentLoopData = $veiculos; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $veiculo): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                        <option value="<?php echo e($veiculo->id); ?>" <?php echo e(old('veiculo_id') == $veiculo->id ? 'selected' : ''); ?>>
-                                            <?php echo e($veiculo->placa); ?> - <?php echo e($veiculo->marca); ?> <?php echo e($veiculo->modelo); ?>
-
-                                        </option>
-                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                                </select>
-                                <?php $__errorArgs = ['veiculo_id'];
+                        <?php $__errorArgs = ['veiculo_id'];
 $__bag = $errors->getBag($__errorArgs[1] ?? 'default');
 if ($__bag->has($__errorArgs[0])) :
 if (isset($message)) { $__messageOriginal = $message; }
 $message = $__bag->first($__errorArgs[0]); ?>
-                                    <div class="invalid-feedback"><?php echo e($message); ?></div>
-                                <?php unset($message);
-if (isset($__messageOriginal)) { $message = $__messageOriginal; }
-endif;
-unset($__errorArgs, $__bag); ?>
-                                <div class="form-text">
-                                    Os dados do veículo e seus compartimentos serão congelados no momento da criação do relatório.
-                                </div>
-                            </div>
-                            <div class="col-md-4 d-flex align-items-end">
-                                <a href="<?php echo e(route('veiculos.create')); ?>" class="btn btn-outline-secondary btn-sm">
-                                    <i class="bi bi-plus"></i> Cadastrar Novo
-                                </a>
-                            </div>
-                        </div>
-                    </fieldset>
-
-                    
-                    <fieldset class="mb-4">
-                        <legend class="h6 border-bottom pb-2 mb-3">
-                            <i class="bi bi-list-check"></i> Finalidades <span class="text-danger">*</span>
-                        </legend>
-
-                        <?php $__errorArgs = ['finalidades'];
-$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
-if ($__bag->has($__errorArgs[0])) :
-if (isset($message)) { $__messageOriginal = $message; }
-$message = $__bag->first($__errorArgs[0]); ?>
-                            <div class="alert alert-danger py-2"><?php echo e($message); ?></div>
+                            <div class="alert alert-danger py-2 mb-2"><?php echo e($message); ?></div>
                         <?php unset($message);
 if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>
 
-                        <div id="finalidades-container">
-                            <?php
-                                $oldFinalidades = old('finalidades', [['finalidade' => '', 'descricao_outros' => '']]);
-                            ?>
-
-                            <?php $__currentLoopData = $oldFinalidades; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $index => $oldFin): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                            <div class="row mb-2 finalidade-row">
-                                <div class="col-md-4">
-                                    <select class="form-select <?php $__errorArgs = ["finalidades.{$index}.finalidade"];
-$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
-if ($__bag->has($__errorArgs[0])) :
-if (isset($message)) { $__messageOriginal = $message; }
-$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
-if (isset($__messageOriginal)) { $message = $__messageOriginal; }
-endif;
-unset($__errorArgs, $__bag); ?>"
-                                            name="finalidades[<?php echo e($index); ?>][finalidade]"
-                                            required>
-                                        <option value="">Selecione...</option>
-                                        <?php $__currentLoopData = $finalidades; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $fin): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                            <option value="<?php echo e($fin->value); ?>"
-                                                <?php echo e(($oldFin['finalidade'] ?? '') === $fin->value ? 'selected' : ''); ?>>
-                                                <?php echo e($fin->label()); ?>
-
-                                            </option>
-                                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                                    </select>
-                                    <?php $__errorArgs = ["finalidades.{$index}.finalidade"];
-$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
-if ($__bag->has($__errorArgs[0])) :
-if (isset($message)) { $__messageOriginal = $message; }
-$message = $__bag->first($__errorArgs[0]); ?>
-                                        <div class="invalid-feedback"><?php echo e($message); ?></div>
-                                    <?php unset($message);
-if (isset($__messageOriginal)) { $message = $__messageOriginal; }
-endif;
-unset($__errorArgs, $__bag); ?>
-                                </div>
-                                <div class="col-md-5">
-                                    <input type="text"
-                                           class="form-control <?php $__errorArgs = ["finalidades.{$index}.descricao_outros"];
-$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
-if ($__bag->has($__errorArgs[0])) :
-if (isset($message)) { $__messageOriginal = $message; }
-$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
-if (isset($__messageOriginal)) { $message = $__messageOriginal; }
-endif;
-unset($__errorArgs, $__bag); ?>"
-                                           name="finalidades[<?php echo e($index); ?>][descricao_outros]"
-                                           value="<?php echo e($oldFin['descricao_outros'] ?? ''); ?>"
-                                           placeholder="Descrição (se Outros)">
-                                    <?php $__errorArgs = ["finalidades.{$index}.descricao_outros"];
-$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
-if ($__bag->has($__errorArgs[0])) :
-if (isset($message)) { $__messageOriginal = $message; }
-$message = $__bag->first($__errorArgs[0]); ?>
-                                        <div class="invalid-feedback"><?php echo e($message); ?></div>
-                                    <?php unset($message);
-if (isset($__messageOriginal)) { $message = $__messageOriginal; }
-endif;
-unset($__errorArgs, $__bag); ?>
-                                </div>
-                                <div class="col-md-3">
-                                    <?php if($index > 0): ?>
-                                        <button type="button" class="btn btn-outline-danger btn-sm remove-finalidade">
-                                            <i class="bi bi-trash"></i> Remover
-                                        </button>
-                                    <?php endif; ?>
+                        <div class="row mb-3">
+                            <div class="col-md-8">
+                                <label for="veiculo_id" class="form-label">Selecionar Veículo <span class="text-danger">*</span></label>
+                                <select class="form-select"
+                                        id="veiculo_id"
+                                        name="veiculo_id"
+                                        required
+                                        disabled>
+                                    <option value="">” Selecione um cliente primeiro ”</option>
+                                </select>
+                                <div class="form-text" id="veiculo-hint">
+                                    Selecione um cliente para ver os Veículos disponíveis.
                                 </div>
                             </div>
-                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                            <div class="col-md-4 d-flex align-items-end">
+                                <a id="add-veiculo-btn"
+                                   href="<?php echo e(route('veiculos.create')); ?>"
+                                   class="btn btn-outline-secondary btn-sm">
+                                    <i class="bi bi-plus"></i> Novo Veículo
+                                </a>
+                            </div>
                         </div>
-
-                        <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="add-finalidade">
-                            <i class="bi bi-plus"></i> Adicionar Finalidade
-                        </button>
                     </fieldset>
 
                     
@@ -409,8 +247,8 @@ unset($__errorArgs, $__bag); ?>
                         <a href="<?php echo e(route('dashboard')); ?>" class="btn btn-outline-secondary">
                             <i class="bi bi-arrow-left"></i> Voltar
                         </a>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-check-lg"></i> Criar Relatório (Rascunho)
+                        <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
+                            <i class="bi bi-check-lg"></i>Imprimir Relatório
                         </button>
                     </div>
                 </form>
@@ -422,50 +260,82 @@ unset($__errorArgs, $__bag); ?>
 
 <?php $__env->startPush('scripts'); ?>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const container = document.getElementById('finalidades-container');
-    const addBtn = document.getElementById('add-finalidade');
-    let index = <?php echo e(count($oldFinalidades)); ?>;
+document.addEventListener('DOMContentLoaded', function () {
+    const clienteSelect  = document.getElementById('cliente_id');
+    const veiculoSelect  = document.getElementById('veiculo_id');
+    const addVeiculoBtn  = document.getElementById('add-veiculo-btn');
+    const veiculoHint    = document.getElementById('veiculo-hint');
+    const submitBtn      = document.getElementById('submitBtn');
 
-    const finalidadeOptions = `
-        <option value="">Selecione...</option>
-        <?php $__currentLoopData = $finalidades; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $fin): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-            <option value="<?php echo e($fin->value); ?>"><?php echo e($fin->label()); ?></option>
-        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-    `;
+    const baseVeiculoUrl = '<?php echo e(route("veiculos.create")); ?>';
 
-    addBtn.addEventListener('click', function() {
-        const row = document.createElement('div');
-        row.className = 'row mb-2 finalidade-row';
-        row.innerHTML = `
-            <div class="col-md-4">
-                <select class="form-select" name="finalidades[${index}][finalidade]" required>
-                    ${finalidadeOptions}
-                </select>
-            </div>
-            <div class="col-md-5">
-                <input type="text" class="form-control"
-                       name="finalidades[${index}][descricao_outros]"
-                       placeholder="Descrição (se Outros)">
-            </div>
-            <div class="col-md-3">
-                <button type="button" class="btn btn-outline-danger btn-sm remove-finalidade">
-                    <i class="bi bi-trash"></i> Remover
-                </button>
-            </div>
-        `;
-        container.appendChild(row);
-        index++;
-    });
+    // Read URL params for pre-selection (e.g. returning from vehicle creation)
+    const urlParams      = new URLSearchParams(window.location.search);
+    const initClienteId  = urlParams.get('cliente_id')   || '<?php echo e(old("cliente_id")); ?>';
+    const initVeiculoId  = urlParams.get('new_veiculo_id') || '<?php echo e(old("veiculo_id")); ?>';
 
-    container.addEventListener('click', function(e) {
-        const btn = e.target.closest('.remove-finalidade');
-        if (btn) {
-            btn.closest('.finalidade-row').remove();
+    function updateSubmitState() {
+        const hasCliente = clienteSelect.value !== '';
+        const hasVeiculo = veiculoSelect.value !== '';
+        submitBtn.disabled = !(hasCliente && hasVeiculo);
+    }
+
+    function loadVeiculos(clienteId, preSelectId) {
+        if (!clienteId) {
+            veiculoSelect.innerHTML = '<option value="">Selecione um cliente primeiro ”</option>';
+            veiculoSelect.disabled  = true;
+            addVeiculoBtn.href      = baseVeiculoUrl;
+            veiculoHint.textContent = 'Selecione um cliente para ver os Veículos disponíveis.';
+            updateSubmitState();
+            return;
         }
+
+        veiculoSelect.innerHTML = '<option value="">Carregando...</option>';
+        veiculoSelect.disabled  = true;
+
+        const newVeiculoUrl = `${baseVeiculoUrl}?cliente_id=${clienteId}&return_to=relatorios_create&return_cliente_id=${clienteId}`;
+        addVeiculoBtn.href  = newVeiculoUrl;
+
+        fetch(`/api/clientes/${clienteId}/veiculos`)
+            .then(function (r) { return r.json(); })
+            .then(function (veiculos) {
+                if (veiculos.length === 0) {
+                    veiculoSelect.innerHTML = '<option value="">Nenhum Veículo cadastrado para este cliente</option>';
+                    veiculoHint.textContent  = 'Clique em "+ Novo Veículo" para cadastrar um Veículo para este cliente.';
+                } else {
+                    veiculoSelect.innerHTML  = '<option value="">Selecione um Veículo...</option>';
+                    veiculos.forEach(function (v) {
+                        const opt     = document.createElement('option');
+                        opt.value     = v.id;
+                        opt.textContent = v.text + ' (' + v.numero_compartimentos + ' compart.)';
+                        if (preSelectId && String(v.id) === String(preSelectId)) {
+                            opt.selected = true;
+                        }
+                        veiculoSelect.appendChild(opt);
+                    });
+                    veiculoHint.textContent = 'Os dados do Veículo serão congelados no Relatório.';
+                }
+                veiculoSelect.disabled = false;
+                updateSubmitState();
+            })
+            .catch(function () {
+                veiculoSelect.innerHTML = '<option value="">Erro ao carregar Veículos</option>';
+                veiculoSelect.disabled  = true;
+            });
+    }
+
+    clienteSelect.addEventListener('change', function () {
+        loadVeiculos(this.value, null);
     });
+
+    veiculoSelect.addEventListener('change', updateSubmitState);
+
+    // Auto-initialize from URL params (e.g. after creating a new vehicle)
+    if (initClienteId) {
+        clienteSelect.value = initClienteId;
+        loadVeiculos(initClienteId, initVeiculoId);
+    }
 });
 </script>
-<?php $__env->stopPush(); ?>
 
 <?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\joaor\OneDrive\Documentos\php\descontaminacao\resources\views/relatorios/create.blade.php ENDPATH**/ ?>

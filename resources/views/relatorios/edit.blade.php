@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('title', 'Editar Relatório Nº ' . $relatorio->numero_relatorio)
 
@@ -13,6 +13,13 @@
     </a>
 </div>
 
+@if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show">
+        {{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
+
 <form method="POST" action="{{ route('relatorios.update', $relatorio) }}" id="editForm">
     @csrf
     @method('PUT')
@@ -24,15 +31,23 @@
         </div>
         <div class="card-body">
             <div class="row mb-3">
-                <div class="col-md-3">
-                    <label class="form-label">Nº do Relatório</label>
+                <div class="col-md-2">
+                    <label class="form-label">Nº Relatório</label>
                     <div class="form-control-plaintext fw-bold">{{ $relatorio->numero_relatorio }}</div>
                 </div>
 
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="form-label">Status</label>
                     <div class="form-control-plaintext">
                         <span class="badge {{ $relatorio->status->badgeClass() }}">{{ $relatorio->status->label() }}</span>
+                    </div>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label">Processo</label>
+                    <div class="form-control-plaintext text-muted">
+                        {{ $relatorio->processo->label() }}
+                        <span class="badge bg-secondary ms-1">fixo</span>
                     </div>
                 </div>
 
@@ -50,24 +65,6 @@
                 </div>
 
                 <div class="col-md-3">
-                    <label for="processo" class="form-label">Processo <span class="text-danger">*</span></label>
-                    <select class="form-select @error('processo') is-invalid @enderror"
-                            id="processo" name="processo" required>
-                        @foreach($processos as $proc)
-                            <option value="{{ $proc->value }}"
-                                {{ old('processo', $relatorio->processo->value) === $proc->value ? 'selected' : '' }}>
-                                {{ $proc->label() }}
-                            </option>
-                        @endforeach
-                    </select>
-                    @error('processo')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                </div>
-            </div>
-
-            <div class="row mb-3">
-                <div class="col-md-4">
                     <label for="responsavel_tecnico_id" class="form-label">Responsável Técnico <span class="text-danger">*</span></label>
                     <select class="form-select @error('responsavel_tecnico_id') is-invalid @enderror"
                             id="responsavel_tecnico_id" name="responsavel_tecnico_id" required>
@@ -79,30 +76,6 @@
                         @endforeach
                     </select>
                     @error('responsavel_tecnico_id')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                </div>
-
-                <div class="col-md-4">
-                    <label for="lacre_entrada" class="form-label">Lacre Entrada (relatório)</label>
-                    <input type="text"
-                           class="form-control @error('lacre_entrada') is-invalid @enderror"
-                           id="lacre_entrada"
-                           name="lacre_entrada"
-                           value="{{ old('lacre_entrada', $relatorio->lacre_entrada) }}">
-                    @error('lacre_entrada')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                </div>
-
-                <div class="col-md-4">
-                    <label for="lacre_saida" class="form-label">Lacre Saída (relatório)</label>
-                    <input type="text"
-                           class="form-control @error('lacre_saida') is-invalid @enderror"
-                           id="lacre_saida"
-                           name="lacre_saida"
-                           value="{{ old('lacre_saida', $relatorio->lacre_saida) }}">
-                    @error('lacre_saida')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
                 </div>
@@ -126,7 +99,7 @@
             <div class="col-md-6">
                 <div class="card shadow-sm">
                     <div class="card-header bg-white">
-                        <h6 class="mb-0 text-muted"><i class="bi bi-person"></i> Cliente (snapshot — somente leitura)</h6>
+                        <h6 class="mb-0 text-muted"><i class="bi bi-person"></i> Cliente (snapshot)</h6>
                     </div>
                     <div class="card-body small">
                         <strong>{{ $relatorio->clienteSnapshot->nome_razao_social }}</strong><br>
@@ -143,10 +116,10 @@
             <div class="col-md-6">
                 <div class="card shadow-sm">
                     <div class="card-header bg-white">
-                        <h6 class="mb-0 text-muted"><i class="bi bi-truck"></i> Veículo (snapshot — somente leitura)</h6>
+                        <h6 class="mb-0 text-muted"><i class="bi bi-truck"></i> Veículo (snapshot)</h6>
                     </div>
                     <div class="card-body small">
-                        <strong>{{ $relatorio->veiculoSnapshot->placa }}</strong> —
+                        <strong>{{ $relatorio->veiculoSnapshot->placa }}</strong> ”
                         {{ $relatorio->veiculoSnapshot->marca }} {{ $relatorio->veiculoSnapshot->modelo }}
                         @if($relatorio->veiculoSnapshot->ano)
                             ({{ $relatorio->veiculoSnapshot->ano }})
@@ -175,7 +148,7 @@
             <div class="card-body p-0">
                 <div class="accordion accordion-flush" id="accordionCompartimentos">
                 @foreach($compartimentos as $ci => $comp)
-                    <div class="accordion-item">
+                    <div class="accordion-item" data-comp-idx="{{ $ci }}">
                         <h2 class="accordion-header">
                             <button class="accordion-button {{ $ci > 0 ? 'collapsed' : '' }}"
                                     type="button"
@@ -183,10 +156,9 @@
                                     data-bs-target="#comp-{{ $ci }}"
                                     aria-expanded="{{ $ci === 0 ? 'true' : 'false' }}">
                                 <i class="bi bi-circle me-2"></i>
-                                Compartimento
-                                <strong class="ms-1">#{{ old("compartimentos.{$ci}.numero", $comp->numero) }}</strong>
+                                Compartimento <strong class="ms-1">#{{ $comp->numero }}</strong>
                                 @if($comp->produto_anterior_nome)
-                                    <span class="ms-2 text-muted small fw-normal">— {{ $comp->produto_anterior_nome }}</span>
+                                    <span class="ms-2 text-muted small fw-normal">” {{ $comp->produto_anterior_nome }}</span>
                                 @endif
                             </button>
                         </h2>
@@ -194,152 +166,101 @@
                              class="accordion-collapse collapse {{ $ci === 0 ? 'show' : '' }}"
                              data-bs-parent="#accordionCompartimentos">
                             <div class="accordion-body">
-                                {{-- Hidden ID --}}
+                                {{-- Hidden fields --}}
                                 <input type="hidden" name="compartimentos[{{ $ci }}][id]" value="{{ $comp->id }}">
+                                <input type="hidden" name="compartimentos[{{ $ci }}][numero]" value="{{ $comp->numero }}">
 
-                                {{-- Row 1: Identification --}}
+                                {{-- Row 1: User inputs ” Volume + Product --}}
                                 <div class="row g-2 mb-3">
                                     <div class="col-sm-2">
-                                        <label class="form-label form-label-sm">Nº <span class="text-danger">*</span></label>
-                                        <input type="number"
-                                               class="form-control form-control-sm @error("compartimentos.{$ci}.numero") is-invalid @enderror"
-                                               name="compartimentos[{{ $ci }}][numero]"
-                                               value="{{ old("compartimentos.{$ci}.numero", $comp->numero) }}"
-                                               min="1" required>
-                                        @error("compartimentos.{$ci}.numero")
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
+                                        <label class="form-label form-label-sm">Compart. Nº</label>
+                                        <div class="form-control-plaintext form-control-sm fw-bold ps-2">
+                                            {{ $comp->numero }}
+                                        </div>
                                     </div>
-                                    <div class="col-sm-3">
-                                        <label class="form-label form-label-sm">Capacidade (L)</label>
+                                    <div class="col-sm-4">
+                                        <label class="form-label form-label-sm">
+                                            Volume / Capacidade (L) m³ <i class="bi bi-calculator text-info" title="Usado no cálculo de Tempo e Volume de Ar"></i>
+                                        </label>
                                         <input type="number"
                                                class="form-control form-control-sm @error("compartimentos.{$ci}.capacidade_litros") is-invalid @enderror"
                                                name="compartimentos[{{ $ci }}][capacidade_litros]"
                                                value="{{ old("compartimentos.{$ci}.capacidade_litros", $comp->capacidade_litros) }}"
-                                               step="0.01" min="0.01">
+                                               data-field="capacidade_litros"
+                                               step="0.01" min="0.01"
+                                               placeholder="Ex: 30 = 30.000 litros">
                                         @error("compartimentos.{$ci}.capacidade_litros")
                                             <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
                                     </div>
-                                    <div class="col-sm-4">
-                                        <label class="form-label form-label-sm">Produto / Nome</label>
-                                        <input type="text"
-                                               class="form-control form-control-sm @error("compartimentos.{$ci}.produto_anterior_nome") is-invalid @enderror"
-                                               name="compartimentos[{{ $ci }}][produto_anterior_nome]"
-                                               value="{{ old("compartimentos.{$ci}.produto_anterior_nome", $comp->produto_anterior_nome) }}"
-                                               maxlength="255">
+                                    <div class="col-sm-6">
+                                        <label class="form-label form-label-sm">
+                                            Combustível / Produto <i class="bi bi-arrow-right text-info" title="Preenche automaticamente o Nº ONU"></i>
+                                        </label>
+                                        <select class="form-select form-select-sm @error("compartimentos.{$ci}.produto_anterior_nome") is-invalid @enderror"
+                                                name="compartimentos[{{ $ci }}][produto_anterior_nome]"
+                                                data-field="produto_anterior_nome">
+                                            
+                                            @foreach($produtos as $produto)
+                                                <option value="{{ $produto->nome }}"
+                                                        data-onu="{{ $produto->numero_onu }}"
+                                                        {{ old("compartimentos.{$ci}.produto_anterior_nome", $comp->produto_anterior_nome) === $produto->nome ? 'selected' : '' }}>
+                                                    {{ $produto->nome }}
+                                                </option>
+                                            @endforeach
+                                        </select>
                                         @error("compartimentos.{$ci}.produto_anterior_nome")
                                             <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
                                     </div>
+                                </div>
+
+                                {{-- Row 2: Computed/auto-filled values (read-only display) --}}
+                                <div class="row g-2 mb-2">
                                     <div class="col-sm-2">
-                                        <label class="form-label form-label-sm">Nº ONU</label>
-                                        <input type="text"
-                                               class="form-control form-control-sm @error("compartimentos.{$ci}.numero_onu") is-invalid @enderror"
-                                               name="compartimentos[{{ $ci }}][numero_onu]"
-                                               value="{{ old("compartimentos.{$ci}.numero_onu", $comp->numero_onu) }}"
-                                               maxlength="50">
-                                        @error("compartimentos.{$ci}.numero_onu")
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
+                                        <label class="form-label form-label-sm text-muted">Nº ONU</label>
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text bg-light border-secondary-subtle" data-display="numero_onu">
+                                                {{ $comp->numero_onu ?? '”' }}
+                                            </span>
+                                        </div>
+                                        <div class="form-text">auto</div>
                                     </div>
                                     <div class="col-sm-2">
-                                        <label class="form-label form-label-sm">Classe de Risco</label>
-                                        <input type="text"
-                                               class="form-control form-control-sm @error("compartimentos.{$ci}.classe_risco") is-invalid @enderror"
-                                               name="compartimentos[{{ $ci }}][classe_risco]"
-                                               value="{{ old("compartimentos.{$ci}.classe_risco", $comp->classe_risco) }}"
-                                               maxlength="100">
-                                        @error("compartimentos.{$ci}.classe_risco")
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
+                                        <label class="form-label form-label-sm text-muted">Tempo (min)</label>
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text bg-light border-secondary-subtle" style="min-width:60px" data-display="tempo_minutos">
+                                                {{ $comp->tempo_minutos ?? '”' }}
+                                            </span>
+                                        </div>
+                                        <div class="form-text">calculado</div>
+                                    </div>
+                                    <div class="col-sm-2">
+                                        <label class="form-label form-label-sm text-muted">Volume de Ar</label>
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text bg-light border-secondary-subtle" style="min-width:60px" data-display="volume_ar">
+                                                {{ $comp->volume_ar ?? '”' }}
+                                            </span>
+                                        </div>
+                                        <div class="form-text">calculado</div>
+                                    </div>
+                                    <div class="col-sm-2">
+                                        <label class="form-label form-label-sm text-muted">Classe Risco</label>
+                                        <span class="badge bg-warning text-dark fs-6 d-block mt-1">3</span>
+                                    </div>
+                                    <div class="col-sm-2">
+                                        <label class="form-label form-label-sm text-muted">Pressão Vapor</label>
+                                        <span class="badge bg-secondary fs-6 d-block mt-1">NA</span>
+                                    </div>
+                                    <div class="col-sm-2">
+                                        <label class="form-label form-label-sm text-muted">Neutralizante</label>
+                                        <span class="badge bg-secondary fs-6 d-block mt-1">NA</span>
                                     </div>
                                 </div>
 
-                                {{-- Row 2: Chemical / operational data --}}
-                                <div class="row g-2 mb-3">
-                                    <div class="col-sm-2">
-                                        <label class="form-label form-label-sm">Pressão Vapor</label>
-                                        <input type="number"
-                                               class="form-control form-control-sm @error("compartimentos.{$ci}.pressao_vapor") is-invalid @enderror"
-                                               name="compartimentos[{{ $ci }}][pressao_vapor]"
-                                               value="{{ old("compartimentos.{$ci}.pressao_vapor", $comp->pressao_vapor) }}"
-                                               step="0.0001" min="0">
-                                        @error("compartimentos.{$ci}.pressao_vapor")
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                    <div class="col-sm-2">
-                                        <label class="form-label form-label-sm">Tempo (min)</label>
-                                        <input type="number"
-                                               class="form-control form-control-sm @error("compartimentos.{$ci}.tempo_minutos") is-invalid @enderror"
-                                               name="compartimentos[{{ $ci }}][tempo_minutos]"
-                                               value="{{ old("compartimentos.{$ci}.tempo_minutos", $comp->tempo_minutos) }}"
-                                               min="0">
-                                        @error("compartimentos.{$ci}.tempo_minutos")
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                    <div class="col-sm-2">
-                                        <label class="form-label form-label-sm">Massa Vapor (kg)</label>
-                                        <input type="number"
-                                               class="form-control form-control-sm @error("compartimentos.{$ci}.massa_vapor") is-invalid @enderror"
-                                               name="compartimentos[{{ $ci }}][massa_vapor]"
-                                               value="{{ old("compartimentos.{$ci}.massa_vapor", $comp->massa_vapor) }}"
-                                               step="0.0001" min="0">
-                                        @error("compartimentos.{$ci}.massa_vapor")
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                    <div class="col-sm-2">
-                                        <label class="form-label form-label-sm">Volume Ar (m³)</label>
-                                        <input type="number"
-                                               class="form-control form-control-sm @error("compartimentos.{$ci}.volume_ar") is-invalid @enderror"
-                                               name="compartimentos[{{ $ci }}][volume_ar]"
-                                               value="{{ old("compartimentos.{$ci}.volume_ar", $comp->volume_ar) }}"
-                                               step="0.0001" min="0">
-                                        @error("compartimentos.{$ci}.volume_ar")
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                    <div class="col-sm-4">
-                                        <label class="form-label form-label-sm">Neutralizante</label>
-                                        <input type="text"
-                                               class="form-control form-control-sm @error("compartimentos.{$ci}.neutralizante") is-invalid @enderror"
-                                               name="compartimentos[{{ $ci }}][neutralizante]"
-                                               value="{{ old("compartimentos.{$ci}.neutralizante", $comp->neutralizante) }}"
-                                               maxlength="255">
-                                        @error("compartimentos.{$ci}.neutralizante")
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                </div>
-
-                                {{-- Row 3: Seals + observations --}}
+                                {{-- Row 3: Observations --}}
                                 <div class="row g-2">
-                                    <div class="col-sm-3">
-                                        <label class="form-label form-label-sm">Lacre Entrada</label>
-                                        <input type="text"
-                                               class="form-control form-control-sm @error("compartimentos.{$ci}.lacre_entrada_numero") is-invalid @enderror"
-                                               name="compartimentos[{{ $ci }}][lacre_entrada_numero]"
-                                               value="{{ old("compartimentos.{$ci}.lacre_entrada_numero", $comp->lacre_entrada_numero) }}"
-                                               maxlength="255">
-                                        @error("compartimentos.{$ci}.lacre_entrada_numero")
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                    <div class="col-sm-3">
-                                        <label class="form-label form-label-sm">Lacre Saída</label>
-                                        <input type="text"
-                                               class="form-control form-control-sm @error("compartimentos.{$ci}.lacre_saida_numero") is-invalid @enderror"
-                                               name="compartimentos[{{ $ci }}][lacre_saida_numero]"
-                                               value="{{ old("compartimentos.{$ci}.lacre_saida_numero", $comp->lacre_saida_numero) }}"
-                                               maxlength="255">
-                                        @error("compartimentos.{$ci}.lacre_saida_numero")
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                    <div class="col-sm-6">
+                                    <div class="col-sm-12">
                                         <label class="form-label form-label-sm">Observação</label>
                                         <input type="text"
                                                class="form-control form-control-sm @error("compartimentos.{$ci}.observacao") is-invalid @enderror"
@@ -370,3 +291,63 @@
     </div>
 </form>
 @endsection
+
+@push('scripts')
+<script>
+/**
+ * SRD-compatible compartment auto-fill logic.
+ *
+ * Business rules applied on the client side (also enforced server-side):
+ *   - tempo_minutos  = capacidade_litros * 12
+ *   - volume_ar      = capacidade_litros * 168
+ *   - numero_onu     = derived from selected product (data-onu attribute)
+ *   - classe_risco   = always 3  (static badge)
+ *   - pressao_vapor  = always NA (static badge)
+ *   - neutralizante  = always NA (static badge)
+ */
+document.addEventListener('DOMContentLoaded', function () {
+
+    document.querySelectorAll('[data-comp-idx]').forEach(function (item) {
+        const volumeInput   = item.querySelector('[data-field="capacidade_litros"]');
+        const produtoSelect = item.querySelector('[data-field="produto_anterior_nome"]');
+        const onuDisplay    = item.querySelector('[data-display="numero_onu"]');
+        const tempoDisplay  = item.querySelector('[data-display="tempo_minutos"]');
+        const volArDisplay  = item.querySelector('[data-display="volume_ar"]');
+
+        function recalcFromVolume() {
+            const vol = parseFloat(volumeInput ? volumeInput.value : '');
+            if (!isNaN(vol) && vol > 0) {
+                if (tempoDisplay) tempoDisplay.textContent = Math.round(vol * 12);
+                if (volArDisplay) volArDisplay.textContent = Math.round(vol * 168);
+            } else {
+                if (tempoDisplay) tempoDisplay.textContent = '”';
+                if (volArDisplay) volArDisplay.textContent = '”';
+            }
+        }
+
+        function fillFromProduct() {
+            if (!produtoSelect) return;
+            const selectedOption = produtoSelect.options[produtoSelect.selectedIndex];
+            const onu = selectedOption ? (selectedOption.getAttribute('data-onu') || '') : '';
+            if (onuDisplay) onuDisplay.textContent = onu || '”';
+        }
+
+        if (volumeInput) {
+            volumeInput.addEventListener('blur', recalcFromVolume);
+            volumeInput.addEventListener('input', recalcFromVolume);
+        }
+
+        if (produtoSelect) {
+            produtoSelect.addEventListener('change', fillFromProduct);
+            // Run on load to reflect current values
+            fillFromProduct();
+        }
+
+        // Recalc on load if volume is already populated
+        if (volumeInput && volumeInput.value) {
+            recalcFromVolume();
+        }
+    });
+});
+</script>
+@endpush

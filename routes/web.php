@@ -35,6 +35,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/veiculos/criar', [VeiculoController::class, 'create'])->name('veiculos.create');
     Route::post('/veiculos', [VeiculoController::class, 'store'])->name('veiculos.store');
 
+    // AJAX: vehicles filtered by client (used by the report creation form)
+    Route::get('/api/clientes/{cliente}/veiculos', [RelatorioController::class, 'veiculosParaCliente'])
+        ->name('api.clientes.veiculos');
+
     // Relatórios — literal paths first so they are not captured by {relatorio}
     Route::get('/relatorios/criar', [RelatorioController::class, 'create'])->name('relatorios.create');
     Route::post('/relatorios', [RelatorioController::class, 'store'])->name('relatorios.store');

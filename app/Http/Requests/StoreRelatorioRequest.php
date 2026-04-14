@@ -2,10 +2,8 @@
 
 namespace App\Http\Requests;
 
-use App\Enums\FinalidadeRelatorio;
-use App\Enums\ProcessoRelatorio;
+use App\Models\Veiculo;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class StoreRelatorioRequest extends FormRequest
 {
@@ -17,52 +15,30 @@ class StoreRelatorioRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'data_servico' => ['required', 'date'],
-            'responsavel_tecnico_id' => ['required', 'exists:users,id'],
-            'processo' => ['required', Rule::enum(ProcessoRelatorio::class)],
-            'observacoes' => ['nullable', 'string', 'max:5000'],
-            'lacre_entrada' => [
-                'nullable',
-                'string',
-                'max:255',
-                'required_with:lacre_saida',
-            ],
-            'lacre_saida' => ['nullable', 'string', 'max:255'],
-
-            // Client selection for snapshot
-            'cliente_id' => ['required', 'exists:clientes,id'],
-
-            // Vehicle selection for snapshot
-            'veiculo_id' => ['required', 'exists:veiculos,id'],
-
-            // Finalidades
-            'finalidades' => ['required', 'array', 'min:1'],
-            'finalidades.*.finalidade' => [
-                'required',
-                Rule::enum(FinalidadeRelatorio::class),
-            ],
-            'finalidades.*.descricao_outros' => ['nullable', 'string', 'max:255'],
+            'data_servico'            => ['required', 'date'],
+            'responsavel_tecnico_id'  => ['required', 'exists:users,id'],
+            'cliente_id'              => ['required', 'exists:clientes,id'],
+            'veiculo_id'              => ['required', 'exists:veiculos,id'],
+            'observacoes'             => ['nullable', 'string', 'max:5000'],
         ];
     }
 
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
-            $finalidades = $this->input('finalidades', []);
+            $clienteId = $this->input('cliente_id');
+            $veiculoId = $this->input('veiculo_id');
 
-            // Check duplicate finalidades
-            $values = collect($finalidades)->pluck('finalidade')->filter();
-            if ($values->count() !== $values->unique()->count()) {
-                $validator->errors()->add('finalidades', 'Não é permitido repetir a mesma finalidade.');
-            }
+            if ($clienteId && $veiculoId) {
+                $belongs = Veiculo::where('id', $veiculoId)
+                    ->where('proprietario_id', $clienteId)
+                    ->where('ativo', true)
+                    ->exists();
 
-            // If OUTROS, descricao_outros is required
-            foreach ($finalidades as $index => $item) {
-                if (($item['finalidade'] ?? '') === FinalidadeRelatorio::OUTROS->value
-                    && empty($item['descricao_outros'])) {
+                if (! $belongs) {
                     $validator->errors()->add(
-                        "finalidades.{$index}.descricao_outros",
-                        'A descrição é obrigatória quando a finalidade é "Outros".'
+                        'veiculo_id',
+                        'O veículo selecionado não pertence ao cliente selecionado.'
                     );
                 }
             }
@@ -72,16 +48,12 @@ class StoreRelatorioRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'data_servico.required' => 'A data do serviço é obrigatória.',
+            'data_servico.required'           => 'A data do serviço é obrigatória.',
             'responsavel_tecnico_id.required' => 'O responsável técnico é obrigatório.',
-            'processo.required' => 'O processo é obrigatório.',
-            'lacre_entrada.required_with' => 'O lacre de entrada é obrigatório quando o lacre de saída é informado.',
-            'cliente_id.required' => 'O cliente é obrigatório.',
-            'cliente_id.exists' => 'O cliente selecionado não existe.',
-            'veiculo_id.required' => 'O veículo é obrigatório.',
-            'veiculo_id.exists' => 'O veículo selecionado não existe.',
-            'finalidades.required' => 'Pelo menos uma finalidade é obrigatória.',
-            'finalidades.min' => 'Pelo menos uma finalidade é obrigatória.',
+            'cliente_id.required'             => 'O cliente é obrigatório.',
+            'cliente_id.exists'               => 'O cliente selecionado não existe.',
+            'veiculo_id.required'             => 'O veículo é obrigatório.',
+            'veiculo_id.exists'               => 'O veículo selecionado não existe.',
         ];
     }
 }

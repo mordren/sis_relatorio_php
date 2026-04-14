@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests;
 
-use App\Enums\ProcessoRelatorio;
 use App\Models\RelatorioCompartimento;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -18,36 +17,26 @@ class UpdateRelatorioRequest extends FormRequest
     {
         return [
             // Report-level fields
-            'data_servico' => ['required', 'date'],
+            'data_servico'           => ['required', 'date'],
             'responsavel_tecnico_id' => ['required', 'exists:users,id'],
-            'processo' => ['required', Rule::enum(ProcessoRelatorio::class)],
-            'observacoes' => ['nullable', 'string', 'max:5000'],
-            'lacre_entrada' => [
+            'observacoes'            => ['nullable', 'string', 'max:5000'],
+
+            // Compartimento snapshot rows
+            'compartimentos'         => ['required', 'array', 'min:1'],
+            'compartimentos.*.id'    => ['required', 'integer'],
+            'compartimentos.*.numero' => ['required', 'integer', 'min:1'],
+
+            // Volume entered by user; nullable until they fill it in
+            'compartimentos.*.capacidade_litros' => ['nullable', 'numeric', 'gt:0'],
+
+            // Product: must be in the canonical catalog when provided
+            'compartimentos.*.produto_anterior_nome' => [
                 'nullable',
                 'string',
                 'max:255',
-                'required_with:lacre_saida',
+                Rule::exists('produtos_transportados', 'nome')->where('ativo', true),
             ],
-            'lacre_saida' => ['nullable', 'string', 'max:255'],
 
-            // Compartimento snapshot rows
-            'compartimentos' => ['required', 'array', 'min:1'],
-            'compartimentos.*.id' => ['required', 'integer'],
-            'compartimentos.*.numero' => ['required', 'integer', 'min:1'],
-            // capacidade_litros is filled on the edit page; nullable at this point
-            'compartimentos.*.capacidade_litros' => ['nullable', 'numeric', 'gt:0'],
-            'compartimentos.*.produto_anterior_nome' => ['nullable', 'string', 'max:255'],
-            // SRD chemical / product fields
-            'compartimentos.*.numero_onu' => ['nullable', 'string', 'max:50'],
-            'compartimentos.*.classe_risco' => ['nullable', 'string', 'max:100'],
-            'compartimentos.*.pressao_vapor' => ['nullable', 'numeric', 'min:0'],
-            'compartimentos.*.tempo_minutos' => ['nullable', 'integer', 'min:0'],
-            'compartimentos.*.massa_vapor' => ['nullable', 'numeric', 'min:0'],
-            'compartimentos.*.volume_ar' => ['nullable', 'numeric', 'min:0'],
-            'compartimentos.*.neutralizante' => ['nullable', 'string', 'max:255'],
-            // Seal fields
-            'compartimentos.*.lacre_entrada_numero' => ['nullable', 'string', 'max:255'],
-            'compartimentos.*.lacre_saida_numero' => ['nullable', 'string', 'max:255'],
             'compartimentos.*.observacao' => ['nullable', 'string', 'max:2000'],
         ];
     }
@@ -79,35 +68,20 @@ class UpdateRelatorioRequest extends FormRequest
                     'Não é permitido ter dois compartimentos com o mesmo número.'
                 );
             }
-
-            // Per-compartimento: lacre_saida_numero requires lacre_entrada_numero
-            foreach ($compartimentos as $index => $comp) {
-                if (! empty($comp['lacre_saida_numero']) && empty($comp['lacre_entrada_numero'])) {
-                    $validator->errors()->add(
-                        "compartimentos.{$index}.lacre_entrada_numero",
-                        'O lacre de entrada é obrigatório quando o lacre de saída é informado.'
-                    );
-                }
-            }
         });
     }
 
     public function messages(): array
     {
         return [
-            'data_servico.required' => 'A data do serviço é obrigatória.',
-            'responsavel_tecnico_id.required' => 'O responsável técnico é obrigatório.',
-            'processo.required' => 'O processo é obrigatório.',
-            'lacre_entrada.required_with' => 'O lacre de entrada é obrigatório quando o lacre de saída é informado.',
-            'compartimentos.required' => 'Pelo menos um compartimento é obrigatório.',
-            'compartimentos.min' => 'Pelo menos um compartimento é obrigatório.',
-            'compartimentos.*.numero.required' => 'O número do compartimento é obrigatório.',
-            'compartimentos.*.numero.min' => 'O número do compartimento deve ser maior que zero.',
-            'compartimentos.*.capacidade_litros.gt' => 'A capacidade deve ser maior que zero.',
-            'compartimentos.*.tempo_minutos.min' => 'O tempo deve ser zero ou maior.',
-            'compartimentos.*.pressao_vapor.min' => 'A pressão deve ser zero ou maior.',
-            'compartimentos.*.massa_vapor.min' => 'A massa de vapor deve ser zero ou maior.',
-            'compartimentos.*.volume_ar.min' => 'O volume de ar deve ser zero ou maior.',
+            'data_servico.required'                      => 'A data do serviço é obrigatória.',
+            'responsavel_tecnico_id.required'            => 'O responsável técnico é obrigatório.',
+            'compartimentos.required'                    => 'Pelo menos um compartimento é obrigatório.',
+            'compartimentos.min'                         => 'Pelo menos um compartimento é obrigatório.',
+            'compartimentos.*.numero.required'           => 'O número do compartimento é obrigatório.',
+            'compartimentos.*.numero.min'                => 'O número do compartimento deve ser maior que zero.',
+            'compartimentos.*.capacidade_litros.gt'      => 'O volume deve ser maior que zero.',
+            'compartimentos.*.produto_anterior_nome.exists' => 'Produto não encontrado no catálogo. Use um produto da lista.',
         ];
     }
 }

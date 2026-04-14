@@ -4,6 +4,7 @@ namespace App\Enums;
 
 enum FinalidadeRelatorio: string
 {
+    case VERIFICACAO_METROLOGICA = 'VERIFICACAO_METROLOGICA';
     case MANUTENCAO = 'MANUTENCAO';
     case TROCA_PRODUTO = 'TROCA_PRODUTO';
     case INSPECAO = 'INSPECAO';
@@ -14,6 +15,7 @@ enum FinalidadeRelatorio: string
     public function label(): string
     {
         return match ($this) {
+            self::VERIFICACAO_METROLOGICA => 'Verificação Metrológica',
             self::MANUTENCAO => 'Manutenção',
             self::TROCA_PRODUTO => 'Troca de Produto',
             self::INSPECAO => 'Inspeção',

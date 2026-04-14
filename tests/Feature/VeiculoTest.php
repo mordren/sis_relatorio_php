@@ -23,11 +23,11 @@ class VeiculoTest extends TestCase
     private function validVeiculoPayload(array $overrides = []): array
     {
         return array_merge([
-            'placa' => 'ABC1D23',
-            'modelo' => 'FH 540',
-            'marca' => 'Volvo',
-            'ano' => 2022,
-            'tipo_veiculo' => 'Caminhão Tanque',
+            'placa'                 => 'ABC1D23',
+            'modelo'                => 'FH 540',
+            'marca'                 => 'Volvo',
+            'ano'                   => 2022,
+            'tipo_veiculo'          => 'SEMIRREBOQUE',
             'numero_compartimentos' => 3,
         ], $overrides);
     }
@@ -61,6 +61,16 @@ class VeiculoTest extends TestCase
             ->assertSee('3 clientes ativos');
     }
 
+    public function test_create_page_has_tipo_veiculo_select(): void
+    {
+        $this->actingAs($this->user)
+            ->get(route('veiculos.create'))
+            ->assertStatus(200)
+            ->assertSee('SEMIRREBOQUE')
+            ->assertSee('CAMINHAO')
+            ->assertSee('REBOCADO');
+    }
+
     public function test_create_page_does_not_have_detailed_compartment_rows(): void
     {
         $this->actingAs($this->user)
@@ -68,6 +78,20 @@ class VeiculoTest extends TestCase
             ->assertStatus(200)
             ->assertSee('numero_compartimentos')
             ->assertDontSee('capacidade_litros');
+    }
+
+    // -----------------------------------------------------------------------
+    // Prefill from report flow context
+    // -----------------------------------------------------------------------
+
+    public function test_create_page_preselects_cliente_from_query_string(): void
+    {
+        $cliente = Cliente::factory()->create(['ativo' => true]);
+
+        $this->actingAs($this->user)
+            ->get(route('veiculos.create') . '?cliente_id=' . $cliente->id)
+            ->assertStatus(200)
+            ->assertSee($cliente->nome_razao_social);
     }
 
     // -----------------------------------------------------------------------
@@ -83,9 +107,10 @@ class VeiculoTest extends TestCase
         $response->assertSessionHas('success');
 
         $this->assertDatabaseHas('veiculos', [
-            'placa' => 'ABC1D23',
-            'modelo' => 'FH 540',
-            'marca' => 'Volvo',
+            'placa'                 => 'ABC1D23',
+            'modelo'                => 'FH 540',
+            'marca'                 => 'Volvo',
+            'tipo_veiculo'          => 'SEMIRREBOQUE',
             'numero_compartimentos' => 3,
         ]);
     }
@@ -113,13 +138,60 @@ class VeiculoTest extends TestCase
         $cliente = Cliente::factory()->create();
 
         $this->actingAs($this->user)->post(route('veiculos.store'), $this->validVeiculoPayload([
-            'placa' => 'XYZ9W88',
+            'placa'           => 'XYZ9W88',
             'proprietario_id' => $cliente->id,
         ]));
 
         $veiculo = Veiculo::where('placa', 'XYZ9W88')->first();
         $this->assertNotNull($veiculo);
         $this->assertEquals($cliente->id, $veiculo->proprietario_id);
+    }
+
+    public function test_store_redirects_back_to_report_create_when_return_to_is_set(): void
+    {
+        $cliente = Cliente::factory()->create(['ativo' => true]);
+
+        $response = $this->actingAs($this->user)->post(route('veiculos.store'), array_merge(
+            $this->validVeiculoPayload(['placa' => 'RET1234', 'proprietario_id' => $cliente->id]),
+            ['return_to' => 'relatorios_create', 'return_cliente_id' => $cliente->id]
+        ));
+
+        $veiculo = Veiculo::where('placa', 'RET1234')->first();
+        $response->assertRedirect(route('relatorios.create') . '?cliente_id=' . $cliente->id . '&new_veiculo_id=' . $veiculo->id);
+        $response->assertSessionHas('success');
+    }
+
+    // -----------------------------------------------------------------------
+    // Validation: tipo_veiculo
+    // -----------------------------------------------------------------------
+
+    public function test_tipo_veiculo_is_required(): void
+    {
+        $payload = $this->validVeiculoPayload();
+        unset($payload['tipo_veiculo']);
+
+        $this->actingAs($this->user)
+            ->post(route('veiculos.store'), $payload)
+            ->assertSessionHasErrors('tipo_veiculo');
+    }
+
+    public function test_tipo_veiculo_must_be_one_of_allowed_types(): void
+    {
+        $this->actingAs($this->user)
+            ->post(route('veiculos.store'), $this->validVeiculoPayload(['tipo_veiculo' => 'CAMINHAO_TANQUE']))
+            ->assertSessionHasErrors('tipo_veiculo');
+    }
+
+    public function test_all_allowed_tipo_veiculo_values_pass(): void
+    {
+        foreach (['SEMIRREBOQUE', 'CAMINHAO', 'REBOCADO'] as $i => $tipo) {
+            $response = $this->actingAs($this->user)
+                ->post(route('veiculos.store'), $this->validVeiculoPayload([
+                    'placa'        => 'TIP' . $i . 'X00',
+                    'tipo_veiculo' => $tipo,
+                ]));
+            $response->assertSessionHasNoErrors();
+        }
     }
 
     // -----------------------------------------------------------------------

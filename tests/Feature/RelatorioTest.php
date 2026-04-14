@@ -6,9 +6,11 @@ use App\Enums\FinalidadeRelatorio;
 use App\Enums\ProcessoRelatorio;
 use App\Enums\StatusRelatorio;
 use App\Models\Cliente;
+use App\Models\ProdutoTransportado;
 use App\Models\RelatorioDescontaminacao;
 use App\Models\User;
 use App\Models\Veiculo;
+use Database\Seeders\ProdutoCatalogSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -23,51 +25,86 @@ class RelatorioTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->user = User::factory()->create();
+
+        $this->seed(ProdutoCatalogSeeder::class);
+
+        $this->user    = User::factory()->create();
         $this->cliente = Cliente::factory()->pessoaFisica()->create();
-        $this->veiculo = Veiculo::factory()->create();
+
+        // Vehicle must belong to the client (new validation rule)
+        $this->veiculo = Veiculo::factory()->create([
+            'proprietario_id' => $this->cliente->id,
+        ]);
     }
 
+    /** Minimal valid payload for creating a report. */
     private function validPayload(array $overrides = []): array
     {
         return array_merge([
-            'data_servico' => '2024-06-15',
+            'data_servico'           => '2024-06-15',
             'responsavel_tecnico_id' => $this->user->id,
-            'processo' => ProcessoRelatorio::LAVAGEM->value,
-            'cliente_id' => $this->cliente->id,
-            'veiculo_id' => $this->veiculo->id,
-            'finalidades' => [
-                ['finalidade' => FinalidadeRelatorio::MANUTENCAO->value, 'descricao_outros' => ''],
-            ],
+            'cliente_id'             => $this->cliente->id,
+            'veiculo_id'             => $this->veiculo->id,
         ], $overrides);
     }
 
+    // -----------------------------------------------------------------------
+    // Page access
+    // -----------------------------------------------------------------------
+
     public function test_create_page_requires_authentication(): void
     {
-        $response = $this->get(route('relatorios.create'));
-        $response->assertRedirect('/login');
+        $this->get(route('relatorios.create'))
+            ->assertRedirect('/login');
     }
 
     public function test_create_page_is_accessible(): void
     {
-        $response = $this->actingAs($this->user)->get(route('relatorios.create'));
-        $response->assertStatus(200);
-        $response->assertSee('Novo Relatório de Descontaminação');
+        $this->actingAs($this->user)
+            ->get(route('relatorios.create'))
+            ->assertStatus(200)
+            ->assertSee('Novo Relatório de Descontaminação');
     }
+
+    // -----------------------------------------------------------------------
+    // Store — happy path
+    // -----------------------------------------------------------------------
 
     public function test_can_create_basic_report(): void
     {
         $response = $this->actingAs($this->user)->post(route('relatorios.store'), $this->validPayload());
 
         $relatorio = RelatorioDescontaminacao::latest('id')->first();
-        $response->assertRedirect(route('relatorios.show', $relatorio));
+
+        // Now redirects to edit to fill compartment details
+        $response->assertRedirect(route('relatorios.edit', $relatorio));
         $response->assertSessionHas('success');
 
         $this->assertDatabaseHas('relatorio_descontaminacoes', [
-            'status' => StatusRelatorio::RASCUNHO->value,
-            'processo' => ProcessoRelatorio::LAVAGEM->value,
+            'status'   => StatusRelatorio::RASCUNHO->value,
+            'processo' => ProcessoRelatorio::VAPOR->value,   // always VAPOR
             'criado_por_id' => $this->user->id,
         ]);
+    }
+
+    public function test_report_processo_is_always_vapor(): void
+    {
+        $this->actingAs($this->user)->post(route('relatorios.store'), $this->validPayload());
+
+        $relatorio = RelatorioDescontaminacao::latest('id')->first();
+        $this->assertEquals(ProcessoRelatorio::VAPOR, $relatorio->processo);
+    }
+
+    public function test_report_always_creates_verificacao_metrologica_finalidade(): void
+    {
+        $this->actingAs($this->user)->post(route('relatorios.store'), $this->validPayload());
+
+        $relatorio = RelatorioDescontaminacao::latest('id')->first();
+        $this->assertCount(1, $relatorio->finalidades);
+        $this->assertEquals(
+            FinalidadeRelatorio::VERIFICACAO_METROLOGICA,
+            $relatorio->finalidades->first()->finalidade
+        );
     }
 
     public function test_report_number_is_numeric_and_auto_increments(): void
@@ -83,14 +120,10 @@ class RelatorioTest extends TestCase
 
     public function test_report_creates_frozen_client_snapshot(): void
     {
-        $this->actingAs($this->user)->post(route('relatorios.store'), $this->validPayload([
-            'processo' => ProcessoRelatorio::VAPOR->value,
-        ]));
+        $this->actingAs($this->user)->post(route('relatorios.store'), $this->validPayload());
 
         $relatorio = RelatorioDescontaminacao::latest('id')->first();
-        $this->assertNotNull($relatorio);
-
-        $snapshot = $relatorio->clienteSnapshot;
+        $snapshot  = $relatorio->clienteSnapshot;
         $this->assertNotNull($snapshot);
         $this->assertEquals($this->cliente->id, $snapshot->cliente_origem_id);
         $this->assertEquals($this->cliente->nome_razao_social, $snapshot->nome_razao_social);
@@ -100,12 +133,10 @@ class RelatorioTest extends TestCase
 
     public function test_report_creates_frozen_vehicle_snapshot(): void
     {
-        $this->actingAs($this->user)->post(route('relatorios.store'), $this->validPayload([
-            'processo' => ProcessoRelatorio::QUIMICO->value,
-        ]));
+        $this->actingAs($this->user)->post(route('relatorios.store'), $this->validPayload());
 
         $relatorio = RelatorioDescontaminacao::latest('id')->first();
-        $snapshot = $relatorio->veiculoSnapshot;
+        $snapshot  = $relatorio->veiculoSnapshot;
         $this->assertNotNull($snapshot);
         $this->assertEquals($this->veiculo->id, $snapshot->veiculo_origem_id);
         $this->assertEquals($this->veiculo->placa, $snapshot->placa);
@@ -115,12 +146,11 @@ class RelatorioTest extends TestCase
 
     public function test_report_creates_frozen_compartment_snapshots(): void
     {
-        // Set the vehicle to have 3 compartments; no VeiculoCompartimento rows needed.
         $this->veiculo->update(['numero_compartimentos' => 3]);
 
         $this->actingAs($this->user)->post(route('relatorios.store'), $this->validPayload());
 
-        $relatorio = RelatorioDescontaminacao::latest('id')->first();
+        $relatorio      = RelatorioDescontaminacao::latest('id')->first();
         $compartimentos = $relatorio->compartimentos()->orderBy('numero')->get();
 
         $this->assertCount(3, $compartimentos);
@@ -128,7 +158,7 @@ class RelatorioTest extends TestCase
         $this->assertEquals(2, $compartimentos[1]->numero);
         $this->assertEquals(3, $compartimentos[2]->numero);
 
-        // Rows are created empty — details are filled later on the report edit page.
+        // Empty rows until user fills them in the edit screen
         $this->assertNull($compartimentos[0]->capacidade_litros);
         $this->assertNull($compartimentos[0]->produto_anterior_nome);
         $this->assertNull($compartimentos[1]->numero_onu);
@@ -146,73 +176,73 @@ class RelatorioTest extends TestCase
         $this->assertEquals($originalNome, $relatorio->clienteSnapshot->nome_razao_social);
     }
 
-    public function test_report_creates_finalidades(): void
+    // -----------------------------------------------------------------------
+    // Store — validation
+    // -----------------------------------------------------------------------
+
+    public function test_veiculo_must_belong_to_selected_cliente(): void
     {
-        $this->actingAs($this->user)->post(route('relatorios.store'), $this->validPayload([
-            'finalidades' => [
-                ['finalidade' => FinalidadeRelatorio::MANUTENCAO->value, 'descricao_outros' => ''],
-                ['finalidade' => FinalidadeRelatorio::CERTIFICACAO->value, 'descricao_outros' => ''],
-            ],
+        $outroCliente = Cliente::factory()->create();
+        $veiculoAlheio = Veiculo::factory()->create(['proprietario_id' => $outroCliente->id]);
+
+        $response = $this->actingAs($this->user)->post(route('relatorios.store'), $this->validPayload([
+            'veiculo_id' => $veiculoAlheio->id,  // belongs to outroCliente, not $this->cliente
         ]));
 
-        $relatorio = RelatorioDescontaminacao::latest('id')->first();
-        $this->assertCount(2, $relatorio->finalidades);
+        $response->assertSessionHasErrors('veiculo_id');
     }
 
-    public function test_outros_finalidade_requires_description(): void
+    public function test_report_requires_data_servico(): void
     {
-        $response = $this->actingAs($this->user)->post(route('relatorios.store'), $this->validPayload([
-            'finalidades' => [
-                ['finalidade' => FinalidadeRelatorio::OUTROS->value, 'descricao_outros' => ''],
-            ],
-        ]));
-
-        $response->assertSessionHasErrors();
+        $this->actingAs($this->user)
+            ->post(route('relatorios.store'), $this->validPayload(['data_servico' => '']))
+            ->assertSessionHasErrors('data_servico');
     }
 
-    public function test_duplicate_finalidades_are_rejected(): void
+    public function test_report_requires_cliente(): void
     {
-        $response = $this->actingAs($this->user)->post(route('relatorios.store'), $this->validPayload([
-            'finalidades' => [
-                ['finalidade' => FinalidadeRelatorio::MANUTENCAO->value, 'descricao_outros' => ''],
-                ['finalidade' => FinalidadeRelatorio::MANUTENCAO->value, 'descricao_outros' => ''],
-            ],
-        ]));
+        $payload = $this->validPayload();
+        unset($payload['cliente_id']);
 
-        $response->assertSessionHasErrors('finalidades');
+        $this->actingAs($this->user)
+            ->post(route('relatorios.store'), $payload)
+            ->assertSessionHasErrors('cliente_id');
     }
 
-    public function test_lacre_entrada_required_when_lacre_saida_filled(): void
+    public function test_report_requires_veiculo(): void
     {
-        $response = $this->actingAs($this->user)->post(route('relatorios.store'), $this->validPayload([
-            'lacre_saida' => 'LAC-OUT-001',
-        ]));
+        $payload = $this->validPayload();
+        unset($payload['veiculo_id']);
 
-        $response->assertSessionHasErrors('lacre_entrada');
+        $this->actingAs($this->user)
+            ->post(route('relatorios.store'), $payload)
+            ->assertSessionHasErrors('veiculo_id');
     }
 
-    public function test_lacre_saida_with_lacre_entrada_is_valid(): void
+    // -----------------------------------------------------------------------
+    // AJAX: vehicles per client
+    // -----------------------------------------------------------------------
+
+    public function test_vehicles_api_returns_vehicles_for_client(): void
     {
-        $response = $this->actingAs($this->user)->post(route('relatorios.store'), $this->validPayload([
-            'lacre_entrada' => 'LAC-IN-001',
-            'lacre_saida' => 'LAC-OUT-001',
-        ]));
+        $outroCliente  = Cliente::factory()->create();
+        $veiculoProrio = Veiculo::factory()->create(['proprietario_id' => $this->cliente->id, 'placa' => 'OWN1111']);
+        $veiculoAlheio = Veiculo::factory()->create(['proprietario_id' => $outroCliente->id,  'placa' => 'OTH2222']);
 
-        $relatorio = RelatorioDescontaminacao::latest('id')->first();
-        $response->assertRedirect(route('relatorios.show', $relatorio));
-        $response->assertSessionHas('success');
+        $response = $this->actingAs($this->user)
+            ->getJson(route('api.clientes.veiculos', $this->cliente));
 
-        $this->assertEquals('LAC-IN-001', $relatorio->lacre_entrada);
-        $this->assertEquals('LAC-OUT-001', $relatorio->lacre_saida);
+        $response->assertStatus(200)
+            ->assertJsonCount(2)   // $this->veiculo + veiculoProrio
+            ->assertJsonFragment(['id' => $veiculoProrio->id])
+            ->assertJsonMissing(['id' => $veiculoAlheio->id]);
     }
 
-    public function test_at_least_one_finalidade_is_required(): void
+    public function test_vehicles_api_requires_authentication(): void
     {
-        $response = $this->actingAs($this->user)->post(route('relatorios.store'), $this->validPayload([
-            'finalidades' => [],
-        ]));
-
-        $response->assertSessionHasErrors('finalidades');
+        // JSON requests get 401 (not 302 redirect) from the auth middleware
+        $this->getJson(route('api.clientes.veiculos', $this->cliente))
+            ->assertStatus(401);
     }
 
     // -----------------------------------------------------------------------
@@ -221,7 +251,7 @@ class RelatorioTest extends TestCase
 
     /**
      * Create a report whose vehicle has the given number of compartments.
-     * Does NOT create VeiculoCompartimento rows — uses numero_compartimentos only.
+     * Vehicle already belongs to $this->cliente (set in setUp).
      */
     private function createReportWithCompartments(int $compartmentCount = 1): RelatorioDescontaminacao
     {
@@ -284,24 +314,38 @@ class RelatorioTest extends TestCase
     // Update
     // -----------------------------------------------------------------------
 
+    /** Base valid update payload bound to a single compartimento. */
+    private function updatePayload(RelatorioDescontaminacao $relatorio, array $compOverrides = [], array $reportOverrides = []): array
+    {
+        $comp = $relatorio->compartimentos()->first();
+
+        return array_merge([
+            'data_servico'           => '2024-07-01',
+            'responsavel_tecnico_id' => $this->user->id,
+            'compartimentos' => [
+                array_merge([
+                    'id'     => $comp->id,
+                    'numero' => $comp->numero,
+                ], $compOverrides),
+            ],
+        ], $reportOverrides);
+    }
+
     public function test_can_update_report_compartments(): void
     {
         $relatorio = $this->createReportWithCompartments();
-        $comp = $relatorio->compartimentos()->first();
+        $comp      = $relatorio->compartimentos()->first();
 
         $response = $this->actingAs($this->user)->put(route('relatorios.update', $relatorio), [
-            'data_servico' => '2024-07-01',
+            'data_servico'           => '2024-07-01',
             'responsavel_tecnico_id' => $this->user->id,
-            'processo' => ProcessoRelatorio::VAPOR->value,
             'compartimentos' => [
                 [
-                    'id' => $comp->id,
-                    'numero' => $comp->numero,
-                    'capacidade_litros' => 12500,
-                    'produto_anterior_nome' => 'Diesel S500',
-                    'lacre_entrada_numero' => 'LAC-ENT-001',
-                    'lacre_saida_numero' => 'LAC-SAI-001',
-                    'observacao' => 'Limpo e vistoriado',
+                    'id'                    => $comp->id,
+                    'numero'                => $comp->numero,
+                    'capacidade_litros'     => 12500,
+                    'produto_anterior_nome' => 'DIESEL',
+                    'observacao'            => 'Limpo e vistoriado',
                 ],
             ],
         ]);
@@ -311,98 +355,121 @@ class RelatorioTest extends TestCase
 
         $comp->refresh();
         $this->assertEquals('12500.00', $comp->capacidade_litros);
-        $this->assertEquals('Diesel S500', $comp->produto_anterior_nome);
-        $this->assertEquals('LAC-ENT-001', $comp->lacre_entrada_numero);
-        $this->assertEquals('LAC-SAI-001', $comp->lacre_saida_numero);
+        $this->assertEquals('DIESEL', $comp->produto_anterior_nome);
+        $this->assertEquals('1202', $comp->numero_onu);          // server-computed
+        $this->assertEquals('3', $comp->classe_risco);           // server-computed
+        $this->assertNull($comp->pressao_vapor);                 // always NA
+        $this->assertNull($comp->massa_vapor);                   // always NA
+        $this->assertEquals('NA', $comp->neutralizante);         // always NA
+        $this->assertNull($comp->lacre_entrada_numero);          // removed from workflow
+        $this->assertNull($comp->lacre_saida_numero);            // removed from workflow
         $this->assertEquals('Limpo e vistoriado', $comp->observacao);
 
-        // Report-level fields also updated
+        // Report-level fields updated
         $relatorio->refresh();
         $this->assertEquals('2024-07-01', $relatorio->data_servico->format('Y-m-d'));
+
+        // Processo is fixed; update never changes it
         $this->assertEquals(ProcessoRelatorio::VAPOR, $relatorio->processo);
     }
 
-    public function test_can_update_srd_compartment_fields(): void
+    public function test_update_auto_computes_srd_fields_from_volume_and_product(): void
     {
         $relatorio = $this->createReportWithCompartments();
-        $comp = $relatorio->compartimentos()->first();
+        $comp      = $relatorio->compartimentos()->first();
 
         $this->actingAs($this->user)->put(route('relatorios.update', $relatorio), [
-            'data_servico' => '2024-07-01',
+            'data_servico'           => '2024-07-01',
             'responsavel_tecnico_id' => $this->user->id,
-            'processo' => ProcessoRelatorio::VAPOR->value,
             'compartimentos' => [
                 [
-                    'id' => $comp->id,
-                    'numero' => $comp->numero,
-                    'capacidade_litros' => 8000,
-                    'produto_anterior_nome' => 'Gasolina Comum',
-                    'numero_onu' => '1203',
-                    'classe_risco' => '3',
-                    'pressao_vapor' => 0.7324,
-                    'tempo_minutos' => 45,
-                    'massa_vapor' => 12.5,
-                    'volume_ar' => 300.0,
-                    'neutralizante' => 'Bicarbonato de Sódio',
+                    'id'                    => $comp->id,
+                    'numero'                => $comp->numero,
+                    'capacidade_litros'     => 100,   // use small, clean number
+                    'produto_anterior_nome' => 'ETANOL',
                 ],
             ],
         ]);
 
         $comp->refresh();
-        $this->assertEquals('1203', $comp->numero_onu);
-        $this->assertEquals('3', $comp->classe_risco);
-        $this->assertEquals('0.7324', $comp->pressao_vapor);
-        $this->assertEquals(45, $comp->tempo_minutos);
-        $this->assertEquals('12.5000', $comp->massa_vapor);
-        $this->assertEquals('300.0000', $comp->volume_ar);
-        $this->assertEquals('Bicarbonato de Sódio', $comp->neutralizante);
+        $this->assertEquals('1170', $comp->numero_onu);          // ETANOL → 1170
+        $this->assertEquals('3', $comp->classe_risco);           // always 3
+        $this->assertNull($comp->pressao_vapor);                 // always NA → null in DB
+        $this->assertEquals(1200, $comp->tempo_minutos);         // 100 * 12
+        $this->assertNull($comp->massa_vapor);                   // always NA → null in DB
+        $this->assertEquals('16800.0000', $comp->volume_ar);    // 100 * 168
+        $this->assertEquals('NA', $comp->neutralizante);
+    }
+
+    public function test_update_with_unknown_product_leaves_onu_null(): void
+    {
+        $relatorio = $this->createReportWithCompartments();
+        $comp      = $relatorio->compartimentos()->first();
+
+        // produto_anterior_nome = null → numero_onu stays null
+        $this->actingAs($this->user)->put(route('relatorios.update', $relatorio), [
+            'data_servico'           => '2024-07-01',
+            'responsavel_tecnico_id' => $this->user->id,
+            'compartimentos' => [
+                ['id' => $comp->id, 'numero' => $comp->numero, 'capacidade_litros' => 5000],
+            ],
+        ]);
+
+        $comp->refresh();
+        $this->assertNull($comp->numero_onu);
     }
 
     public function test_compartimento_capacidade_litros_is_optional_on_update(): void
     {
-        // Newly created compartments are empty; saving without capacidade_litros must succeed.
         $relatorio = $this->createReportWithCompartments();
-        $comp = $relatorio->compartimentos()->first();
+        $comp      = $relatorio->compartimentos()->first();
 
         $response = $this->actingAs($this->user)->put(route('relatorios.update', $relatorio), [
-            'data_servico' => '2024-07-01',
+            'data_servico'           => '2024-07-01',
             'responsavel_tecnico_id' => $this->user->id,
-            'processo' => ProcessoRelatorio::LAVAGEM->value,
             'compartimentos' => [
-                [
-                    'id' => $comp->id,
-                    'numero' => $comp->numero,
-                    // deliberately omit capacidade_litros
-                    'produto_anterior_nome' => 'Óleo Diesel',
-                ],
+                ['id' => $comp->id, 'numero' => $comp->numero],
             ],
         ]);
 
         $response->assertRedirect(route('relatorios.show', $relatorio));
         $comp->refresh();
         $this->assertNull($comp->capacidade_litros);
+        $this->assertNull($comp->tempo_minutos);
+        $this->assertNull($comp->volume_ar);
+    }
+
+    public function test_produto_anterior_nome_must_be_in_catalog(): void
+    {
+        $relatorio = $this->createReportWithCompartments();
+        $comp      = $relatorio->compartimentos()->first();
+
+        $response = $this->actingAs($this->user)->put(route('relatorios.update', $relatorio), [
+            'data_servico'           => '2024-07-01',
+            'responsavel_tecnico_id' => $this->user->id,
+            'compartimentos' => [
+                [
+                    'id'                    => $comp->id,
+                    'numero'                => $comp->numero,
+                    'produto_anterior_nome' => 'PRODUTO_INVALIDO_XYZ',
+                ],
+            ],
+        ]);
+
+        $response->assertSessionHasErrors('compartimentos.0.produto_anterior_nome');
     }
 
     public function test_duplicate_compartment_numbers_are_rejected_on_update(): void
     {
         $relatorio = $this->createReportWithCompartments(2);
-        $comps = $relatorio->compartimentos()->orderBy('numero')->get();
+        $comps     = $relatorio->compartimentos()->orderBy('numero')->get();
 
         $response = $this->actingAs($this->user)->put(route('relatorios.update', $relatorio), [
-            'data_servico' => '2024-07-01',
+            'data_servico'           => '2024-07-01',
             'responsavel_tecnico_id' => $this->user->id,
-            'processo' => ProcessoRelatorio::LAVAGEM->value,
             'compartimentos' => [
-                [
-                    'id' => $comps[0]->id,
-                    'numero' => 1,
-                    'capacidade_litros' => 10000,
-                ],
-                [
-                    'id' => $comps[1]->id,
-                    'numero' => 1, // duplicate
-                    'capacidade_litros' => 10000,
-                ],
+                ['id' => $comps[0]->id, 'numero' => 1, 'capacidade_litros' => 10000],
+                ['id' => $comps[1]->id, 'numero' => 1, 'capacidade_litros' => 10000], // duplicate
             ],
         ]);
 
@@ -411,22 +478,19 @@ class RelatorioTest extends TestCase
 
     public function test_update_does_not_modify_live_vehicle_data(): void
     {
-        // Updating a report compartment snapshot must never touch the live Veiculo record.
         $this->veiculo->update(['numero_compartimentos' => 2]);
-        $relatorio = $this->createReportWithCompartments(2);
+        $relatorio    = $this->createReportWithCompartments(2);
         $snapshotComp = $relatorio->compartimentos()->first();
 
         $originalNumeroCompartimentos = $this->veiculo->fresh()->numero_compartimentos;
 
         $this->actingAs($this->user)->put(route('relatorios.update', $relatorio), [
-            'data_servico' => '2024-07-01',
+            'data_servico'           => '2024-07-01',
             'responsavel_tecnico_id' => $this->user->id,
-            'processo' => ProcessoRelatorio::LAVAGEM->value,
             'compartimentos' => $relatorio->compartimentos->map(fn ($c) => [
-                'id' => $c->id,
-                'numero' => $c->numero,
+                'id'               => $c->id,
+                'numero'           => $c->numero,
                 'capacidade_litros' => 99999,
-                'produto_anterior_nome' => 'Alterado',
             ])->values()->toArray(),
         ]);
 
@@ -434,9 +498,8 @@ class RelatorioTest extends TestCase
         $snapshotComp->refresh();
         $this->assertEquals('99999.00', $snapshotComp->capacidade_litros);
 
-        // Live vehicle record unchanged
+        // Live vehicle and compartimento table unchanged
         $this->assertEquals($originalNumeroCompartimentos, $this->veiculo->fresh()->numero_compartimentos);
-        // The veiculo_compartimentos table must still be empty (we never create rows there)
         $this->assertDatabaseCount('veiculo_compartimentos', 0);
     }
 
@@ -444,9 +507,9 @@ class RelatorioTest extends TestCase
     {
         $relatorio1 = $this->createReportWithCompartments();
 
-        // Create a second report using a different vehicle (factory uses numero_compartimentos=1 by default)
-        $veiculo2 = Veiculo::factory()->create();
-        $this->actingAs($this->user)->post(route('relatorios.store'), array_merge($this->validPayload(), [
+        // Second report using a different vehicle also owned by the same client
+        $veiculo2 = Veiculo::factory()->create(['proprietario_id' => $this->cliente->id]);
+        $this->actingAs($this->user)->post(route('relatorios.store'), $this->validPayload([
             'veiculo_id' => $veiculo2->id,
         ]));
         $relatorio2 = RelatorioDescontaminacao::latest('id')->first();
@@ -454,12 +517,11 @@ class RelatorioTest extends TestCase
         $otherComp = $relatorio2->compartimentos()->first();
 
         $response = $this->actingAs($this->user)->put(route('relatorios.update', $relatorio1), [
-            'data_servico' => '2024-07-01',
+            'data_servico'           => '2024-07-01',
             'responsavel_tecnico_id' => $this->user->id,
-            'processo' => ProcessoRelatorio::LAVAGEM->value,
             'compartimentos' => [
                 [
-                    'id' => $otherComp->id, // belongs to relatorio2, not relatorio1
+                    'id'     => $otherComp->id, // belongs to relatorio2
                     'numero' => 1,
                     'capacidade_litros' => 10000,
                 ],
@@ -467,28 +529,5 @@ class RelatorioTest extends TestCase
         ]);
 
         $response->assertSessionHasErrors('compartimentos.0.id');
-    }
-
-    public function test_lacre_saida_requires_lacre_entrada_on_compartimento(): void
-    {
-        $relatorio = $this->createReportWithCompartments();
-        $comp = $relatorio->compartimentos()->first();
-
-        $response = $this->actingAs($this->user)->put(route('relatorios.update', $relatorio), [
-            'data_servico' => '2024-07-01',
-            'responsavel_tecnico_id' => $this->user->id,
-            'processo' => ProcessoRelatorio::LAVAGEM->value,
-            'compartimentos' => [
-                [
-                    'id' => $comp->id,
-                    'numero' => $comp->numero,
-                    'capacidade_litros' => 10000,
-                    'lacre_entrada_numero' => '',    // missing
-                    'lacre_saida_numero' => 'LAC-SAI-999',
-                ],
-            ],
-        ]);
-
-        $response->assertSessionHasErrors('compartimentos.0.lacre_entrada_numero');
     }
 }

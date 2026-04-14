@@ -70,17 +70,9 @@ class SnapshotServiceTest extends TestCase
 
     public function test_create_compartimento_snapshots(): void
     {
-        VeiculoCompartimento::factory()->create([
-            'veiculo_id' => $this->veiculo->id,
-            'numero' => 1,
-            'capacidade_litros' => 20000.50,
-        ]);
-
-        VeiculoCompartimento::factory()->create([
-            'veiculo_id' => $this->veiculo->id,
-            'numero' => 2,
-            'capacidade_litros' => 15000.00,
-        ]);
+        // The service uses veiculo.numero_compartimentos (not VeiculoCompartimento rows).
+        // Compartments are created as blank placeholders to be filled by the operator.
+        $this->veiculo->update(['numero_compartimentos' => 2]);
 
         $relatorio = RelatorioDescontaminacao::factory()->create([
             'responsavel_tecnico_id' => $this->user->id,
@@ -90,7 +82,8 @@ class SnapshotServiceTest extends TestCase
 
         $this->assertCount(2, $snapshots);
         $this->assertEquals(1, $snapshots[0]->numero);
-        $this->assertEquals('20000.50', $snapshots[0]->capacidade_litros);
+        $this->assertEquals(2, $snapshots[1]->numero);
+        $this->assertNull($snapshots[0]->capacidade_litros);
     }
 
     public function test_create_equipamento_snapshot(): void
