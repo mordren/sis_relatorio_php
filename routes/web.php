@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EquipamentoMedicaoController;
 use App\Http\Controllers\RelatorioController;
 use App\Http\Controllers\VeiculoController;
 use Illuminate\Support\Facades\Route;
@@ -52,4 +53,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/relatorios/{relatorio}/editar', [RelatorioController::class, 'edit'])->name('relatorios.edit');
     Route::put('/relatorios/{relatorio}', [RelatorioController::class, 'update'])->name('relatorios.update');
     Route::get('/relatorios/{relatorio}/imprimir', [RelatorioController::class, 'print'])->name('relatorios.print');
+
+    // Equipamentos de Medição (Admin only)
+    Route::prefix('equipamentos-medicao')->group(function () {
+        Route::get('', [EquipamentoMedicaoController::class, 'index'])->name('equipamentos_medicao.index');
+        Route::get('criar', [EquipamentoMedicaoController::class, 'create'])->name('equipamentos_medicao.create');
+        Route::post('', [EquipamentoMedicaoController::class, 'store'])->name('equipamentos_medicao.store');
+        Route::get('{equipamento}/editar', [EquipamentoMedicaoController::class, 'edit'])->name('equipamentos_medicao.edit');
+        Route::put('{equipamento}', [EquipamentoMedicaoController::class, 'update'])->name('equipamentos_medicao.update');
+        Route::delete('{equipamento}', [EquipamentoMedicaoController::class, 'destroy'])->name('equipamentos_medicao.destroy');
+    });
 });

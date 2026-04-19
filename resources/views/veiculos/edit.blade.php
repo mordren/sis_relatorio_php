@@ -123,6 +123,22 @@
                         </div>
                     </div>
 
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="numero_equipamento" class="form-label">Nº do Equipamento</label>
+                            <input type="text"
+                                   class="form-control @error('numero_equipamento') is-invalid @enderror"
+                                   id="numero_equipamento"
+                                   name="numero_equipamento"
+                                   value="{{ old('numero_equipamento', $veiculo->numero_equipamento) }}"
+                                   maxlength="50"
+                                   placeholder="Ex: EQ-0001">
+                            @error('numero_equipamento')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                    </div>
+
                     <div class="mb-3">
                         <label for="proprietario_id" class="form-label">Proprietário</label>
                         <select class="form-select @error('proprietario_id') is-invalid @enderror"

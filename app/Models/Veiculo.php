@@ -17,6 +17,7 @@ class Veiculo extends Model
         'marca',
         'ano',
         'tipo_veiculo',
+        'numero_equipamento',
         'numero_compartimentos',
         'proprietario_id',
         'ativo',

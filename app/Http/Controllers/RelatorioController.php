@@ -106,7 +106,16 @@ class RelatorioController extends Controller
             'responsavelTecnico.profile',
         ]);
 
-        return view('relatorios.print', compact('relatorio'));
+        // Extract finalidade enum values into array for view
+        $relFinalidades = $relatorio->finalidades
+            ->pluck('finalidade')
+            ->map(fn($f) => $f->value)
+            ->all();
+
+        // Get latest measurement equipment for the report
+        $medicaoEquipamentos = \App\Models\EquipamentoMedicao::getLatestByType();
+
+        return view('relatorios.print', compact('relatorio', 'relFinalidades', 'medicaoEquipamentos'));
     }
 
     public function edit(RelatorioDescontaminacao $relatorio): View

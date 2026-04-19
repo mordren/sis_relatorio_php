@@ -18,6 +18,7 @@ class RelatorioVeiculoSnapshot extends Model
         'marca',
         'ano',
         'tipo_veiculo',
+        'numero_equipamento',
     ];
 
     protected function casts(): array

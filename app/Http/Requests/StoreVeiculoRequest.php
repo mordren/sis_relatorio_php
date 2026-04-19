@@ -25,6 +25,7 @@ class StoreVeiculoRequest extends FormRequest
             'marca' => ['required', 'string', 'max:255'],
             'ano' => ['nullable', 'integer', 'min:1900', 'max:' . (date('Y') + 2)],
             'tipo_veiculo' => ['required', Rule::in(['SEMIRREBOQUE', 'CAMINHAO', 'REBOCADO'])],
+            'numero_equipamento' => ['nullable', 'string', 'max:50'],
             'numero_compartimentos' => ['required', 'integer', 'min:1', 'max:99'],
             'proprietario_id' => ['nullable', 'exists:clientes,id'],
             'ativo' => ['boolean'],

@@ -226,6 +226,37 @@ if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>
                         </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        
+                        <div class="col-md-3">
+                            <label for="numero_equipamento" class="form-label fw-medium">Nº do Equipamento</label>
+                            <input type="text"
+                                   class="form-control <?php $__errorArgs = ['numero_equipamento'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                                   id="numero_equipamento"
+                                   name="numero_equipamento"
+                                   value="<?php echo e(old('numero_equipamento')); ?>"
+                                   maxlength="50"
+                                   placeholder="Ex: EQ-0001">
+                            <?php $__errorArgs = ['numero_equipamento'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                <div class="invalid-feedback"><?php echo e($message); ?></div>
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                        </div>
 
                         
                         <div class="col-md-3">

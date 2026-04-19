@@ -38,6 +38,7 @@
                             <th>Ano</th>
                             <th>Tipo</th>
                             <th class="text-center">Compart.</th>
+                            <th>Nº Equip.</th>
                             <th>Proprietário</th>
                             <th>Situação</th>
                             <th></th>
@@ -56,6 +57,7 @@
                                 </span>
                             </td>
                             <td class="text-center"><?php echo e($veiculo->numero_compartimentos); ?></td>
+                            <td><?php echo e($veiculo->numero_equipamento ?: '—'); ?></td>
                             <td><?php echo e($veiculo->proprietario?->nome_razao_social ?? '—'); ?></td>
                             <td>
                                 <?php if($veiculo->ativo): ?>

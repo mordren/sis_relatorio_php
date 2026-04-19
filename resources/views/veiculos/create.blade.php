@@ -142,6 +142,23 @@
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        {{-- Nº do Equipamento --}}
+                        <div class="col-md-3">
+                            <label for="numero_equipamento" class="form-label fw-medium">Nº do Equipamento</label>
+                            <input type="text"
+                                   class="form-control @error('numero_equipamento') is-invalid @enderror"
+                                   id="numero_equipamento"
+                                   name="numero_equipamento"
+                                   value="{{ old('numero_equipamento') }}"
+                                   maxlength="50"
+                                   placeholder="Ex: EQ-0001">
+                            @error('numero_equipamento')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
 
                         {{-- Proprietário (Cliente) --}}
                         <div class="col-md-3">

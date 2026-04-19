@@ -53,6 +53,7 @@ class SnapshotService
             'marca' => $veiculo->marca,
             'ano' => $veiculo->ano,
             'tipo_veiculo' => $veiculo->tipo_veiculo,
+            'numero_equipamento' => $veiculo->numero_equipamento,
         ]);
     }
 
