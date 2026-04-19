@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\FinalidadeRelatorio;
 use App\Enums\ProcessoRelatorio;
+use App\Enums\StatusRelatorio;
 use App\Http\Requests\StoreRelatorioRequest;
 use App\Http\Requests\UpdateRelatorioRequest;
 use App\Models\Cliente;
@@ -85,6 +86,29 @@ class RelatorioController extends Controller
         return view('relatorios.show', compact('relatorio'));
     }
 
+    /**
+     * Print-friendly certificate view. Only available for EMITIDO reports.
+     */
+    public function print(RelatorioDescontaminacao $relatorio): View|RedirectResponse
+    {
+        if ($relatorio->status !== StatusRelatorio::EMITIDO) {
+            return redirect()
+                ->route('relatorios.show', $relatorio)
+                ->with('error', 'Somente relatórios com status EMITIDO podem ser impressos.');
+        }
+
+        $relatorio->load([
+            'clienteSnapshot',
+            'veiculoSnapshot',
+            'finalidades',
+            'compartimentos',
+            'equipamentosUtilizados',
+            'responsavelTecnico.profile',
+        ]);
+
+        return view('relatorios.print', compact('relatorio'));
+    }
+
     public function edit(RelatorioDescontaminacao $relatorio): View
     {
         $relatorio->load([
@@ -153,11 +177,33 @@ class RelatorioController extends Controller
                         'observacao' => $data['observacao'] ?? null,
                     ]);
             }
+
+            // Transition to EMITIDO when all compartments are fully filled.
+            // A compartment is considered complete when both its volume and
+            // its previous product have been provided (both required for SRD).
+            if ($relatorio->status === StatusRelatorio::RASCUNHO) {
+                $total    = $relatorio->compartimentos()->count();
+                $completo = $relatorio->compartimentos()
+                    ->whereNotNull('capacidade_litros')
+                    ->whereNotNull('produto_anterior_nome')
+                    ->count();
+
+                if ($total > 0 && $completo === $total) {
+                    $relatorio->update([
+                        'status'     => StatusRelatorio::EMITIDO,
+                        'emitido_em' => now(),
+                    ]);
+                }
+            }
         });
+
+        $mensagem = $relatorio->fresh()->status === StatusRelatorio::EMITIDO
+            ? 'Relatório emitido com sucesso!'
+            : 'Relatório salvo como rascunho. Preencha todos os compartimentos para emitir.';
 
         return redirect()
             ->route('relatorios.show', $relatorio)
-            ->with('success', 'Relatório atualizado com sucesso!');
+            ->with('success', $mensagem);
     }
 
     // -----------------------------------------------------------------------

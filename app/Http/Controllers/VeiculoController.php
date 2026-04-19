@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreVeiculoRequest;
+use App\Http\Requests\UpdateVeiculoRequest;
 use App\Models\Cliente;
 use App\Models\Veiculo;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -13,6 +15,15 @@ class VeiculoController extends Controller
 {
     /** Fixed options for vehicle type. */
     public const TIPOS_VEICULO = ['SEMIRREBOQUE', 'CAMINHAO', 'REBOCADO'];
+
+    public function index(): View
+    {
+        $veiculos = Veiculo::with('proprietario')
+            ->orderBy('placa')
+            ->paginate(20);
+
+        return view('veiculos.index', compact('veiculos'));
+    }
 
     public function create(Request $request): View
     {
@@ -35,7 +46,7 @@ class VeiculoController extends Controller
         ));
     }
 
-    public function store(StoreVeiculoRequest $request): RedirectResponse
+    public function store(StoreVeiculoRequest $request): RedirectResponse|JsonResponse
     {
         $validated = $request->validated();
 
@@ -49,6 +60,14 @@ class VeiculoController extends Controller
             'proprietario_id'       => $validated['proprietario_id'] ?? null,
             'ativo'                 => $validated['ativo'] ?? true,
         ]);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'id'                    => $veiculo->id,
+                'text'                  => $veiculo->placa . ' — ' . $veiculo->marca . ' ' . $veiculo->modelo,
+                'numero_compartimentos' => $veiculo->numero_compartimentos,
+            ], 201);
+        }
 
         // If created from the report flow, redirect back to report creation
         // preserving the selected client and pre-selecting the new vehicle.
@@ -64,6 +83,34 @@ class VeiculoController extends Controller
         return redirect()
             ->route('veiculos.create')
             ->with('success', 'Veículo cadastrado com sucesso!');
+    }
+
+    public function edit(Veiculo $veiculo): View
+    {
+        $clientes     = Cliente::where('ativo', true)->orderBy('nome_razao_social')->get();
+        $tiposVeiculo = self::TIPOS_VEICULO;
+
+        return view('veiculos.edit', compact('veiculo', 'clientes', 'tiposVeiculo'));
+    }
+
+    public function update(UpdateVeiculoRequest $request, Veiculo $veiculo): RedirectResponse
+    {
+        $validated = $request->validated();
+
+        $veiculo->update([
+            'placa'                 => $validated['placa'],
+            'modelo'                => $validated['modelo'],
+            'marca'                 => $validated['marca'],
+            'ano'                   => $validated['ano'] ?? null,
+            'tipo_veiculo'          => $validated['tipo_veiculo'],
+            'numero_compartimentos' => $validated['numero_compartimentos'],
+            'proprietario_id'       => $validated['proprietario_id'] ?? null,
+            'ativo'                 => isset($validated['ativo']) ? (bool) $validated['ativo'] : false,
+        ]);
+
+        return redirect()
+            ->route('veiculos.index')
+            ->with('success', 'Veículo atualizado com sucesso!');
     }
 }
 

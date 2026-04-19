@@ -1,17 +1,16 @@
-@extends('layouts.app')
+<?php $__env->startSection('title', 'Novo Relatório de Descontaminação'); ?>
 
-@section('title', 'Novo Relatório de Descontaminação')
-
-@section('content')
+<?php $__env->startSection('content'); ?>
 <div class="row justify-content-center">
     <div class="col-lg-8">
 
-        @if(session('success'))
+        <?php if(session('success')): ?>
             <div class="alert alert-success alert-dismissible fade show">
-                {{ session('success') }}
+                <?php echo e(session('success')); ?>
+
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
-        @endif
+        <?php endif; ?>
 
         <div class="card shadow-sm">
             <div class="card-header bg-white">
@@ -20,13 +19,13 @@
                 </h5>
             </div>
             <div class="card-body">
-                <form method="POST" action="{{ route('relatorios.store') }}" id="relatorioForm">
-                    @csrf
+                <form method="POST" action="<?php echo e(route('relatorios.store')); ?>" id="relatorioForm">
+                    <?php echo csrf_field(); ?>
 
-                    {{-- Fixed workflow values (VAPOR / VERIFICACAO_METROLOGICA) --}}
-                    {{-- These are not user-selectable in this flow --}}
+                    
+                    
 
-                    {{-- Dados do Relatório --}}
+                    
                     <fieldset class="mb-4">
                         <legend class="h6 border-bottom pb-2 mb-3">
                             <i class="bi bi-file-text"></i> Dados do Relatório
@@ -43,32 +42,61 @@
                             <div class="col-md-4">
                                 <label for="data_servico" class="form-label">Data do Serviço <span class="text-danger">*</span></label>
                                 <input type="date"
-                                       class="form-control @error('data_servico') is-invalid @enderror"
+                                       class="form-control <?php $__errorArgs = ['data_servico'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
                                        id="data_servico"
                                        name="data_servico"
-                                       value="{{ old('data_servico', date('Y-m-d')) }}"
+                                       value="<?php echo e(old('data_servico', date('Y-m-d'))); ?>"
                                        required>
-                                @error('data_servico')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                                <?php $__errorArgs = ['data_servico'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                    <div class="invalid-feedback"><?php echo e($message); ?></div>
+                                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
                             </div>
 
                             <div class="col-md-4">
                                 <label for="responsavel_tecnico_id" class="form-label">Responsável Técnico <span class="text-danger">*</span></label>
-                                <select class="form-select @error('responsavel_tecnico_id') is-invalid @enderror"
+                                <select class="form-select <?php $__errorArgs = ['responsavel_tecnico_id'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
                                         id="responsavel_tecnico_id"
                                         name="responsavel_tecnico_id"
                                         required>
                                     <option value="">Selecione...</option>
-                                    @foreach($responsaveis as $resp)
-                                        <option value="{{ $resp->id }}" {{ old('responsavel_tecnico_id') == $resp->id ? 'selected' : '' }}>
-                                            {{ $resp->name }}
+                                    <?php $__currentLoopData = $responsaveis; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $resp): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                        <option value="<?php echo e($resp->id); ?>" <?php echo e(old('responsavel_tecnico_id') == $resp->id ? 'selected' : ''); ?>>
+                                            <?php echo e($resp->name); ?>
+
                                         </option>
-                                    @endforeach
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                 </select>
-                                @error('responsavel_tecnico_id')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                                <?php $__errorArgs = ['responsavel_tecnico_id'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                    <div class="invalid-feedback"><?php echo e($message); ?></div>
+                                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
                             </div>
                         </div>
 
@@ -90,7 +118,7 @@
                         </div>
                     </fieldset>
 
-                    {{-- Cliente --}}
+                    
                     <fieldset class="mb-4">
                         <legend class="h6 border-bottom pb-2 mb-3">
                             <i class="bi bi-person"></i> Cliente
@@ -99,20 +127,35 @@
                         <div class="row mb-3">
                             <div class="col-md-8">
                                 <label for="cliente_id" class="form-label">Selecionar Cliente <span class="text-danger">*</span></label>
-                                <select class="form-select @error('cliente_id') is-invalid @enderror"
+                                <select class="form-select <?php $__errorArgs = ['cliente_id'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
                                         id="cliente_id"
                                         name="cliente_id"
                                         required>
                                     <option value="">Selecione um cliente...</option>
-                                    @foreach($clientes as $cliente)
-                                        <option value="{{ $cliente->id }}">
-                                            {{ $cliente->nome_razao_social }} ” {{ $cliente->cpf_cnpj }}
+                                    <?php $__currentLoopData = $clientes; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $cliente): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                        <option value="<?php echo e($cliente->id); ?>">
+                                            <?php echo e($cliente->nome_razao_social); ?> ” <?php echo e($cliente->cpf_cnpj); ?>
+
                                         </option>
-                                    @endforeach
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                 </select>
-                                @error('cliente_id')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                                <?php $__errorArgs = ['cliente_id'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                    <div class="invalid-feedback"><?php echo e($message); ?></div>
+                                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
                                 <div class="form-text">
                                     Os dados do cliente serão congelados no momento da criação do Relatório.
                                 </div>
@@ -128,15 +171,22 @@
                         </div>
                     </fieldset>
 
-                    {{-- Veículo (dependent on Cliente) --}}
+                    
                     <fieldset class="mb-4">
                         <legend class="h6 border-bottom pb-2 mb-3">
                             <i class="bi bi-truck"></i> Veículo
                         </legend>
 
-                        @error('veiculo_id')
-                            <div class="alert alert-danger py-2 mb-2">{{ $message }}</div>
-                        @enderror
+                        <?php $__errorArgs = ['veiculo_id'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                            <div class="alert alert-danger py-2 mb-2"><?php echo e($message); ?></div>
+                        <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
 
                         <div class="row mb-3">
                             <div class="col-md-8">
@@ -165,26 +215,40 @@
                         </div>
                     </fieldset>
 
-                    {{-- Observações --}}
+                    
                     <fieldset class="mb-4">
                         <legend class="h6 border-bottom pb-2 mb-3">
                             <i class="bi bi-chat-left-text"></i> Observações
                         </legend>
 
                         <div class="mb-3">
-                            <textarea class="form-control @error('observacoes') is-invalid @enderror"
+                            <textarea class="form-control <?php $__errorArgs = ['observacoes'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
                                       id="observacoes"
                                       name="observacoes"
                                       rows="3"
-                                      maxlength="5000">{{ old('observacoes') }}</textarea>
-                            @error('observacoes')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+                                      maxlength="5000"><?php echo e(old('observacoes')); ?></textarea>
+                            <?php $__errorArgs = ['observacoes'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                <div class="invalid-feedback"><?php echo e($message); ?></div>
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
                         </div>
                     </fieldset>
 
                     <div class="d-flex justify-content-between">
-                        <a href="{{ route('dashboard') }}" class="btn btn-outline-secondary">
+                        <a href="<?php echo e(route('dashboard')); ?>" class="btn btn-outline-secondary">
                             <i class="bi bi-arrow-left"></i> Voltar
                         </a>
                         <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
@@ -196,11 +260,9 @@
         </div>
     </div>
 </div>
-@endsection
+<?php $__env->stopSection(); ?>
 
-{{-- ============================================================
-     Modal: Cadastrar Novo Cliente (inline, sem sair da página)
-     ============================================================ --}}
+
 <div class="modal fade" id="modalNovoCliente" tabindex="-1" aria-labelledby="modalNovoClienteLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -212,7 +274,7 @@
             </div>
 
             <form id="formNovoCliente" novalidate>
-                @csrf
+                <?php echo csrf_field(); ?>
                 <div class="modal-body">
 
                     <div class="alert alert-danger d-none" id="mc-alert" role="alert"></div>
@@ -288,10 +350,8 @@
     </div>
 </div>
 
-@push('scripts')
-{{-- ============================================================
-     Modal: Cadastrar Novo Veículo (inline, sem sair da página)
-     ============================================================ --}}
+<?php $__env->startPush('scripts'); ?>
+
 <div class="modal fade" id="modalNovoVeiculo" tabindex="-1" aria-labelledby="modalNovoVeiculoLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -303,8 +363,8 @@
             </div>
 
             <form id="formNovoVeiculo" novalidate>
-                @csrf
-                {{-- proprietario_id is injected by JS from the currently-selected client --}}
+                <?php echo csrf_field(); ?>
+                
                 <input type="hidden" id="mv_proprietario_id" name="proprietario_id">
 
                 <div class="modal-body">
@@ -335,7 +395,7 @@
                         <div class="col-md-3">
                             <label for="mv_ano" class="form-label">Ano</label>
                             <input type="number" class="form-control" id="mv_ano" name="ano"
-                                   min="1900" max="{{ date('Y') + 2 }}" placeholder="{{ date('Y') }}">
+                                   min="1900" max="<?php echo e(date('Y') + 2); ?>" placeholder="<?php echo e(date('Y')); ?>">
                             <div class="invalid-feedback"></div>
                         </div>
                         <div class="col-md-5">
@@ -375,7 +435,7 @@
     </div>
 </div>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const clienteSelect  = document.getElementById('cliente_id');
@@ -386,8 +446,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Read URL params for pre-selection (e.g. returning from vehicle creation)
     const urlParams      = new URLSearchParams(window.location.search);
-    const initClienteId  = urlParams.get('cliente_id')   || '{{ old("cliente_id") }}';
-    const initVeiculoId  = urlParams.get('new_veiculo_id') || '{{ old("veiculo_id") }}';
+    const initClienteId  = urlParams.get('cliente_id')   || '<?php echo e(old("cliente_id")); ?>';
+    const initVeiculoId  = urlParams.get('new_veiculo_id') || '<?php echo e(old("veiculo_id")); ?>';
 
     function updateSubmitState() {
         const hasCliente = clienteSelect.value !== '';
@@ -635,4 +695,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 </script>
-@endpush
+<?php $__env->stopPush(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH E:\Programacao\sis_relatorio_php\sis_relatorio_php\resources\views/relatorios/create.blade.php ENDPATH**/ ?>

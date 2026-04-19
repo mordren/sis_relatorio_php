@@ -28,12 +28,18 @@ Route::middleware('auth')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
     // Clientes
+    Route::get('/clientes', [ClienteController::class, 'index'])->name('clientes.index');
     Route::get('/clientes/criar', [ClienteController::class, 'create'])->name('clientes.create');
     Route::post('/clientes', [ClienteController::class, 'store'])->name('clientes.store');
+    Route::get('/clientes/{cliente}/editar', [ClienteController::class, 'edit'])->name('clientes.edit');
+    Route::put('/clientes/{cliente}', [ClienteController::class, 'update'])->name('clientes.update');
 
     // Veículos
+    Route::get('/veiculos', [VeiculoController::class, 'index'])->name('veiculos.index');
     Route::get('/veiculos/criar', [VeiculoController::class, 'create'])->name('veiculos.create');
     Route::post('/veiculos', [VeiculoController::class, 'store'])->name('veiculos.store');
+    Route::get('/veiculos/{veiculo}/editar', [VeiculoController::class, 'edit'])->name('veiculos.edit');
+    Route::put('/veiculos/{veiculo}', [VeiculoController::class, 'update'])->name('veiculos.update');
 
     // AJAX: vehicles filtered by client (used by the report creation form)
     Route::get('/api/clientes/{cliente}/veiculos', [RelatorioController::class, 'veiculosParaCliente'])
@@ -45,4 +51,5 @@ Route::middleware('auth')->group(function () {
     Route::get('/relatorios/{relatorio}', [RelatorioController::class, 'show'])->name('relatorios.show');
     Route::get('/relatorios/{relatorio}/editar', [RelatorioController::class, 'edit'])->name('relatorios.edit');
     Route::put('/relatorios/{relatorio}', [RelatorioController::class, 'update'])->name('relatorios.update');
+    Route::get('/relatorios/{relatorio}/imprimir', [RelatorioController::class, 'print'])->name('relatorios.print');
 });

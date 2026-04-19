@@ -17,6 +17,11 @@
                 <i class="bi bi-pencil"></i> Editar
             </a>
         @endif
+        @if($relatorio->status === \App\Enums\StatusRelatorio::EMITIDO)
+            <a href="{{ route('relatorios.print', $relatorio) }}" class="btn btn-success btn-sm" target="_blank">
+                <i class="bi bi-printer"></i> Imprimir Certificado
+            </a>
+        @endif
     </div>
 </div>
 
