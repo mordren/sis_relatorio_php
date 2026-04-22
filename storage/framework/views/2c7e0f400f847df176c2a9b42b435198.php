@@ -367,6 +367,26 @@
                 </span>
             </li>
             <?php endif; ?>
+
+            
+            <?php if(Auth::user()->is_admin && Route::has('equipamentos_medicao.index')): ?>
+            <li class="nav-item">
+                <a class="nav-link <?php echo e(Route::is('equipamentos_medicao.*') ? 'active' : ''); ?>" href="<?php echo e(route('equipamentos_medicao.index')); ?>">
+                    <i class="bi bi-tools"></i>
+                    <span>Equipamentos</span>
+                </a>
+            </li>
+            <?php endif; ?>
+
+            
+            <?php if(Auth::user()->is_admin && Route::has('users.index')): ?>
+            <li class="nav-item">
+                <a class="nav-link <?php echo e(Route::is('users.*') ? 'active' : ''); ?>" href="<?php echo e(route('users.index')); ?>">
+                    <i class="bi bi-people-gear"></i>
+                    <span>Usuários</span>
+                </a>
+            </li>
+            <?php endif; ?>
         </ul>
 
         <div class="sidebar-footer">

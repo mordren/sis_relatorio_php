@@ -367,6 +367,26 @@
                 </span>
             </li>
             @endif
+
+            {{-- Equipamentos de Medição (admin only) --}}
+            @if(Auth::user()->is_admin && Route::has('equipamentos_medicao.index'))
+            <li class="nav-item">
+                <a class="nav-link {{ Route::is('equipamentos_medicao.*') ? 'active' : '' }}" href="{{ route('equipamentos_medicao.index') }}">
+                    <i class="bi bi-tools"></i>
+                    <span>Equipamentos</span>
+                </a>
+            </li>
+            @endif
+
+            {{-- Gerenciamento de Usuários (admin only) --}}
+            @if(Auth::user()->is_admin && Route::has('users.index'))
+            <li class="nav-item">
+                <a class="nav-link {{ Route::is('users.*') ? 'active' : '' }}" href="{{ route('users.index') }}">
+                    <i class="bi bi-people-gear"></i>
+                    <span>Usuários</span>
+                </a>
+            </li>
+            @endif
         </ul>
 
         <div class="sidebar-footer">

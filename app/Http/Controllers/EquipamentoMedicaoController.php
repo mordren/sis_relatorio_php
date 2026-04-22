@@ -9,18 +9,6 @@ use Illuminate\View\View;
 
 class EquipamentoMedicaoController extends Controller
 {
-    // Admin-only check
-    public function __construct()
-    {
-        $this->middleware('auth');
-        $this->middleware(function ($request, $next) {
-            if (!$request->user()?->is_admin) {
-                abort(403, 'Acesso negado. Apenas administradores podem acessar equipamentos de medição.');
-            }
-            return $next($request);
-        });
-    }
-
     public function index(): View
     {
         $equipamentos = EquipamentoMedicao::latest()->paginate(20);

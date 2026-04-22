@@ -64,7 +64,7 @@
                                     <span class="text-muted">-</span>
                                 @endif
                             </td>
-                            <td>{{ $relatorio->processo->label() }}</td>
+                            <td style="font-size:12px">Com ventilação forçada</td>
                             <td>{{ $relatorio->responsavelTecnico->name ?? '-' }}</td>
                             <td>{{ $relatorio->created_at->format('d/m/Y H:i') }}</td>
                             <td class="text-end text-nowrap">

@@ -1,76 +1,69 @@
 @extends('layouts.app')
 
 @section('title', 'Equipamentos de Medição')
+@section('page-title', 'Equipamentos de Medição')
 
 @section('content')
-<div class="container mx-auto px-4 py-8">
-    <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold">Equipamentos de Medição</h1>
-        <a href="{{ route('equipamentos-medicao.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-            + Novo Equipamento
-        </a>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div></div>
+    <a href="{{ route('equipamentos_medicao.create') }}" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-lg"></i> Novo Equipamento
+    </a>
+</div>
+
+<div class="card-modern">
+    <div class="table-responsive table-modern">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Tipo</th>
+                    <th>Nº Série</th>
+                    <th>Data Calibração</th>
+                    <th>Observação</th>
+                    <th>Status</th>
+                    <th class="text-end">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($equipamentos as $eq)
+                <tr>
+                    <td>{{ $eq->getTypeLabel() }}</td>
+                    <td><strong>{{ $eq->numero_serie }}</strong></td>
+                    <td>{{ $eq->data_calibracao?->format('d/m/Y') ?? '—' }}</td>
+                    <td class="text-muted">{{ $eq->observacao ?? '—' }}</td>
+                    <td>
+                        @if($eq->ativo)
+                            <span class="badge bg-success">Ativo</span>
+                        @else
+                            <span class="badge bg-warning text-dark">Inativo</span>
+                        @endif
+                    </td>
+                    <td class="text-end">
+                        <a href="{{ route('equipamentos_medicao.edit', $eq) }}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-pencil"></i> Editar
+                        </a>
+                        <form method="POST" action="{{ route('equipamentos_medicao.destroy', $eq) }}" class="d-inline"
+                              onsubmit="return confirm('Confirmar exclusão do equipamento {{ addslashes($eq->numero_serie) }}?')">
+                            @csrf @method('DELETE')
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-4">Nenhum equipamento registrado.</td>
+                </tr>
+                @endforelse
+            </tbody>
+        </table>
     </div>
 
-    @if(session('success'))
-        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-            {{ session('success') }}
-        </div>
-    @endif
-
-    @if($equipamentos->isEmpty())
-        <div class="bg-gray-100 border border-gray-300 text-gray-700 px-4 py-3 rounded">
-            Nenhum equipamento registrado. <a href="{{ route('equipamentos-medicao.create') }}" class="text-blue-600 hover:text-blue-800 underline">Criar novo</a>
-        </div>
-    @else
-        <div class="overflow-x-auto shadow rounded-lg">
-            <table class="min-w-full bg-white">
-                <thead class="bg-gray-200">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Tipo</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Nº Série</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Data Calibração</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Status</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Ações</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-200">
-                    @foreach($equipamentos as $eq)
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {{ $eq->getTypeLabel() }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {{ $eq->numero_serie }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {{ $eq->data_calibracao?->format('d/m/Y') ?? '—' }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                <span class="px-3 py-1 rounded-full text-xs font-medium {{ $eq->ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
-                                    {{ $eq->ativo ? 'Ativo' : 'Inativo' }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <a href="{{ route('equipamentos-medicao.edit', $eq) }}" class="text-blue-600 hover:text-blue-900 mr-4">
-                                    Editar
-                                </a>
-                                <form method="POST" action="{{ route('equipamentos-medicao.destroy', $eq) }}" style="display:inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="text-red-600 hover:text-red-900" onclick="return confirm('Tem certeza?')">
-                                        Deletar
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-
-        <div class="mt-4">
-            {{ $equipamentos->links() }}
-        </div>
+    @if($equipamentos->hasPages())
+    <div class="mt-3 px-2">
+        {{ $equipamentos->links() }}
+    </div>
     @endif
 </div>
 @endsection

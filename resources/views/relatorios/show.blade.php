@@ -22,6 +22,13 @@
                 <i class="bi bi-printer"></i> Imprimir Certificado
             </a>
         @endif
+        <form method="POST" action="{{ route('relatorios.destroy', $relatorio) }}" class="d-inline"
+              onsubmit="return confirm('Tem certeza que deseja excluir a OS #{{ $relatorio->numero_relatorio }}? Esta ação não pode ser desfeita.')">
+            @csrf @method('DELETE')
+            <button type="submit" class="btn btn-outline-danger btn-sm">
+                <i class="bi bi-trash"></i> Excluir OS
+            </button>
+        </form>
     </div>
 </div>
 
@@ -55,7 +62,7 @@
                     <dd class="col-sm-8">{{ $relatorio->data_servico->format('d/m/Y') }}</dd>
 
                     <dt class="col-sm-4">Processo</dt>
-                    <dd class="col-sm-8">{{ $relatorio->processo->label() }}</dd>
+                    <dd class="col-sm-8">Com ventilação forçada</dd>
 
                     <dt class="col-sm-4">Responsável</dt>
                     <dd class="col-sm-8">{{ $relatorio->responsavelTecnico->name ?? '-' }}</dd>
@@ -196,7 +203,7 @@
                             @endif
                             @if($comp->pressao_vapor !== null)
                                 <div class="col-6 col-sm-2">
-                                    <div class="text-muted small">Pressão Vapor</div>
+                                    <div class="text-muted small">Com ventilação forçada</div>
                                     <div>{{ $comp->pressao_vapor }}</div>
                                 </div>
                             @endif

@@ -17,6 +17,18 @@
                 <i class="bi bi-pencil"></i> Editar
             </a>
         <?php endif; ?>
+        <?php if($relatorio->status === \App\Enums\StatusRelatorio::EMITIDO): ?>
+            <a href="<?php echo e(route('relatorios.print', $relatorio)); ?>" class="btn btn-success btn-sm" target="_blank">
+                <i class="bi bi-printer"></i> Imprimir Certificado
+            </a>
+        <?php endif; ?>
+        <form method="POST" action="<?php echo e(route('relatorios.destroy', $relatorio)); ?>" class="d-inline"
+              onsubmit="return confirm('Tem certeza que deseja excluir a OS #<?php echo e($relatorio->numero_relatorio); ?>? Esta ação não pode ser desfeita.')">
+            <?php echo csrf_field(); ?> <?php echo method_field('DELETE'); ?>
+            <button type="submit" class="btn btn-outline-danger btn-sm">
+                <i class="bi bi-trash"></i> Excluir OS
+            </button>
+        </form>
     </div>
 </div>
 
@@ -52,7 +64,7 @@
                     <dd class="col-sm-8"><?php echo e($relatorio->data_servico->format('d/m/Y')); ?></dd>
 
                     <dt class="col-sm-4">Processo</dt>
-                    <dd class="col-sm-8"><?php echo e($relatorio->processo->label()); ?></dd>
+                    <dd class="col-sm-8">Com ventilação forçada</dd>
 
                     <dt class="col-sm-4">Responsável</dt>
                     <dd class="col-sm-8"><?php echo e($relatorio->responsavelTecnico->name ?? '-'); ?></dd>
@@ -194,7 +206,7 @@
                             <?php endif; ?>
                             <?php if($comp->pressao_vapor !== null): ?>
                                 <div class="col-6 col-sm-2">
-                                    <div class="text-muted small">Pressão Vapor</div>
+                                    <div class="text-muted small">Com ventilação forçada</div>
                                     <div><?php echo e($comp->pressao_vapor); ?></div>
                                 </div>
                             <?php endif; ?>

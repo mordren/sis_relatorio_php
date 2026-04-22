@@ -16,6 +16,7 @@ use App\Models\Veiculo;
 use App\Services\SnapshotService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
@@ -31,10 +32,51 @@ class RelatorioController extends Controller
 
     public function create(): View
     {
-        $clientes     = Cliente::where('ativo', true)->orderBy('nome_razao_social')->get();
         $responsaveis = User::orderBy('name')->get();
+        $oldCliente   = null;
+        if (old('cliente_id')) {
+            $oldCliente = Cliente::find(old('cliente_id'), ['id', 'nome_razao_social', 'cpf_cnpj']);
+        }
 
-        return view('relatorios.create', compact('clientes', 'responsaveis'));
+        return view('relatorios.create', compact('responsaveis', 'oldCliente'));
+    }
+
+    /**
+     * Live search for clients (autocomplete).
+     * Accepts ?q= for name search, or ?id= to fetch a single client by PK.
+     */
+    public function searchClientes(Request $request): JsonResponse
+    {
+        $q  = trim((string) $request->query('q', ''));
+        $id = (int) $request->query('id', 0);
+
+        if ($id > 0) {
+            $c = Cliente::find($id, ['id', 'nome_razao_social', 'cpf_cnpj']);
+            if (! $c) {
+                return response()->json([]);
+            }
+            return response()->json([[
+                'id'   => $c->id,
+                'text' => $c->nome_razao_social . ($c->cpf_cnpj ? ' — ' . $c->cpf_cnpj : ''),
+                'nome' => $c->nome_razao_social,
+            ]]);
+        }
+
+        if ($q === '') {
+            return response()->json([]);
+        }
+
+        $clientes = Cliente::where('ativo', true)
+            ->where('nome_razao_social', 'like', '%' . $q . '%')
+            ->orderBy('nome_razao_social')
+            ->limit(15)
+            ->get(['id', 'nome_razao_social', 'cpf_cnpj']);
+
+        return response()->json($clientes->map(fn ($c) => [
+            'id'   => $c->id,
+            'text' => $c->nome_razao_social . ($c->cpf_cnpj ? ' — ' . $c->cpf_cnpj : ''),
+            'nome' => $c->nome_razao_social,
+        ]));
     }
 
     public function store(StoreRelatorioRequest $request): RedirectResponse
@@ -227,6 +269,8 @@ class RelatorioController extends Controller
     {
         $veiculos = Veiculo::where('proprietario_id', $cliente->id)
             ->where('ativo', true)
+            ->orderBy('marca')
+            ->orderBy('modelo')
             ->orderBy('placa')
             ->get(['id', 'placa', 'marca', 'modelo', 'numero_compartimentos']);
 
@@ -256,6 +300,13 @@ class RelatorioController extends Controller
         return ProdutoTransportado::where('nome', $nomeProduto)
             ->where('ativo', true)
             ->value('numero_onu');
+    }
+
+    public function destroy(RelatorioDescontaminacao $relatorio): RedirectResponse
+    {
+        $relatorio->delete();
+
+        return redirect()->route('dashboard')->with('success', "OS #{$relatorio->numero_relatorio} excluída com sucesso.");
     }
 }
 

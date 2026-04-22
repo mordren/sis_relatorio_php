@@ -67,7 +67,7 @@
                                     <span class="text-muted">-</span>
                                 <?php endif; ?>
                             </td>
-                            <td><?php echo e($relatorio->processo->label()); ?></td>
+                            <td style="font-size:12px">Com ventilação forçada</td>
                             <td><?php echo e($relatorio->responsavelTecnico->name ?? '-'); ?></td>
                             <td><?php echo e($relatorio->created_at->format('d/m/Y H:i')); ?></td>
                             <td class="text-end text-nowrap">

@@ -77,7 +77,7 @@
                                 <div class="d-flex gap-3">
                                     <div class="text-muted small">
                                         <i class="bi bi-fire text-warning"></i>
-                                        <strong>Processo:</strong> Vapor
+                                        <strong>Processo:</strong> Com ventilação forçada
                                         <span class="badge bg-secondary ms-1">fixo</span>
                                     </div>
                                     <div class="text-muted small">
