@@ -97,22 +97,24 @@
                         </legend>
 
                         <div class="row mb-3">
-                            <div class="col-md-8">
-                                <label for="cliente_id" class="form-label">Selecionar Cliente <span class="text-danger">*</span></label>
-                                <select class="form-select @error('cliente_id') is-invalid @enderror"
-                                        id="cliente_id"
-                                        name="cliente_id"
-                                        required>
-                                    <option value="">Selecione um cliente...</option>
-                                    @foreach($clientes as $cliente)
-                                        <option value="{{ $cliente->id }}">
-                                            {{ $cliente->nome_razao_social }} ” {{ $cliente->cpf_cnpj }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                                @error('cliente_id')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                                                        <div class="col-md-8">
+                                <label for="cliente_search" class="form-label">Selecionar Cliente <span class="text-danger">*</span></label>
+                                <div class="position-relative" id="cliente-autocomplete-wrapper">
+                                    <input type="text"
+                                           class="form-control @error('cliente_id') is-invalid @enderror"
+                                           id="cliente_search"
+                                           placeholder="Digite o nome do cliente para buscar..."
+                                           autocomplete="off"
+                                           value="{{ $oldCliente ? $oldCliente->nome_razao_social . ($oldCliente->cpf_cnpj ? ' — ' . $oldCliente->cpf_cnpj : '') : '' }}">
+                                    <input type="hidden" id="cliente_id" name="cliente_id"
+                                           value="{{ old('cliente_id', '') }}">
+                                    <div id="cliente-dropdown"
+                                         style="display:none;position:absolute;top:100%;left:0;right:0;z-index:1050;max-height:220px;overflow-y:auto;background:#fff;border:1px solid #dee2e6;border-top:none;border-radius:0 0 .375rem .375rem;box-shadow:0 4px 12px rgba(0,0,0,.1)">
+                                    </div>
+                                    @error('cliente_id')
+                                        <div class="invalid-feedback d-block">{{ $message }}</div>
+                                    @enderror
+                                </div>
                                 <div class="form-text">
                                     Os dados do cliente serão congelados no momento da criação do Relatório.
                                 </div>
@@ -378,19 +380,21 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const clienteSelect  = document.getElementById('cliente_id');
-    const veiculoSelect  = document.getElementById('veiculo_id');
-    const addVeiculoBtn  = document.getElementById('add-veiculo-btn');
-    const veiculoHint    = document.getElementById('veiculo-hint');
-    const submitBtn      = document.getElementById('submitBtn');
+    const clienteHidden   = document.getElementById('cliente_id');
+    const clienteSearch   = document.getElementById('cliente_search');
+    const clienteDropdown = document.getElementById('cliente-dropdown');
+    const veiculoSelect   = document.getElementById('veiculo_id');
+    const addVeiculoBtn   = document.getElementById('add-veiculo-btn');
+    const veiculoHint     = document.getElementById('veiculo-hint');
+    const submitBtn       = document.getElementById('submitBtn');
 
     // Read URL params for pre-selection (e.g. returning from vehicle creation)
-    const urlParams      = new URLSearchParams(window.location.search);
-    const initClienteId  = urlParams.get('cliente_id')   || '{{ old("cliente_id") }}';
-    const initVeiculoId  = urlParams.get('new_veiculo_id') || '{{ old("veiculo_id") }}';
+    const urlParams     = new URLSearchParams(window.location.search);
+    const initClienteId = urlParams.get('cliente_id')    || '{{ old("cliente_id") }}';
+    const initVeiculoId = urlParams.get('new_veiculo_id') || '{{ old("veiculo_id") }}';
 
     function updateSubmitState() {
-        const hasCliente = clienteSelect.value !== '';
+        const hasCliente = clienteHidden.value !== '';
         const hasVeiculo = veiculoSelect.value !== '';
         submitBtn.disabled = !(hasCliente && hasVeiculo);
     }
@@ -438,16 +442,84 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     }
 
-    clienteSelect.addEventListener('change', function () {
-        loadVeiculos(this.value, null);
+    // ── Autocomplete: Busca de Clientes ──────────────────────────────────────
+    let searchTimer = null;
+
+    function escapeHtml(s) {
+        var d = document.createElement('div');
+        d.appendChild(document.createTextNode(s));
+        return d.innerHTML;
+    }
+
+    function setCliente(id, text, nome) {
+        clienteHidden.value = id;
+        clienteSearch.value = nome || text;
+        clienteDropdown.style.display = 'none';
+        loadVeiculos(id, null);
+        updateSubmitState();
+    }
+
+    function showClienteDropdown(items) {
+        if (!items.length) {
+            clienteDropdown.innerHTML = '<div style="padding:8px 12px;color:#666;font-size:13px">Nenhum cliente encontrado.</div>';
+        } else {
+            clienteDropdown.innerHTML = items.map(function (c) {
+                return '<div class="ac-item" data-id="' + c.id + '" data-nome="' + escapeHtml(c.nome) + '" data-text="' + escapeHtml(c.text) + '" style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid #f0f0f0">' + escapeHtml(c.text) + '</div>';
+            }).join('');
+            clienteDropdown.querySelectorAll('.ac-item').forEach(function (item) {
+                item.addEventListener('mousedown', function (e) {
+                    e.preventDefault();
+                    setCliente(this.dataset.id, this.dataset.text, this.dataset.nome);
+                });
+                item.addEventListener('mouseover', function () { this.style.background = '#f0f7ff'; });
+                item.addEventListener('mouseout',  function () { this.style.background = ''; });
+            });
+        }
+        clienteDropdown.style.display = 'block';
+    }
+
+    clienteSearch.addEventListener('input', function () {
+        var q = this.value.trim();
+        clearTimeout(searchTimer);
+        clienteHidden.value = '';
+        loadVeiculos('', null);
+        updateSubmitState();
+        if (q.length === 0) {
+            clienteDropdown.style.display = 'none';
+            return;
+        }
+        searchTimer = setTimeout(function () {
+            fetch('/api/clientes/search?q=' + encodeURIComponent(q))
+                .then(function (r) { return r.json(); })
+                .then(showClienteDropdown)
+                .catch(function () {
+                    clienteDropdown.innerHTML = '<div style="padding:8px 12px;color:#dc3545">Erro ao buscar clientes.</div>';
+                    clienteDropdown.style.display = 'block';
+                });
+        }, 250);
+    });
+
+    clienteSearch.addEventListener('blur', function () {
+        setTimeout(function () { clienteDropdown.style.display = 'none'; }, 200);
+    });
+
+    document.addEventListener('click', function (e) {
+        if (!e.target.closest('#cliente-autocomplete-wrapper')) {
+            clienteDropdown.style.display = 'none';
+        }
     });
 
     veiculoSelect.addEventListener('change', updateSubmitState);
 
-    // Auto-initialize from URL params (e.g. after creating a new vehicle)
+    // Auto-initialize from URL params or old() (e.g. after returning from vehicle creation)
     if (initClienteId) {
-        clienteSelect.value = initClienteId;
+        clienteHidden.value = initClienteId;
+        fetch('/api/clientes/search?id=' + encodeURIComponent(initClienteId))
+            .then(function (r) { return r.json(); })
+            .then(function (data) { if (data && data[0]) { clienteSearch.value = data[0].nome; } })
+            .catch(function () {});
         loadVeiculos(initClienteId, initVeiculoId);
+        updateSubmitState();
     }
 
     // ── Modal: Cadastrar Novo Cliente ────────────────────────────────────────
@@ -507,15 +579,8 @@ document.addEventListener('DOMContentLoaded', function () {
         })
         .then(function (result) {
             if (result.ok) {
-                // Add new client to the dropdown and select it
-                var opt       = document.createElement('option');
-                opt.value     = result.data.id;
-                opt.textContent = result.data.text;
-                opt.selected  = true;
-                clienteSelect.appendChild(opt);
-
-                // Trigger vehicle loading for the new client
-                clienteSelect.dispatchEvent(new Event('change'));
+                // Set client in autocomplete and trigger vehicle load
+                setCliente(result.data.id, result.data.text, result.data.nome || result.data.text);
 
                 // Close modal
                 bootstrap.Modal.getInstance(modalEl).hide();
@@ -564,7 +629,7 @@ document.addEventListener('DOMContentLoaded', function () {
         mvAlert.classList.add('d-none');
         mvAlert.textContent = '';
         // Inject the currently-selected client as the vehicle owner
-        mvProprietarioInput.value = clienteSelect.value || '';
+        mvProprietarioInput.value = clienteHidden.value || '';
     });
 
     mvForm.addEventListener('submit', function (e) {
@@ -604,7 +669,7 @@ document.addEventListener('DOMContentLoaded', function () {
         })
         .then(function (result) {
             if (result.ok) {
-                var currentClienteId = clienteSelect.value;
+                var currentClienteId = clienteHidden.value;
                 // Reload the vehicle dropdown for this client, pre-selecting the new vehicle
                 loadVeiculos(currentClienteId, result.data.id);
                 // Close modal

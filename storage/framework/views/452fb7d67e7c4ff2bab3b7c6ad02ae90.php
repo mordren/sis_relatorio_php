@@ -606,7 +606,7 @@
             </div>
             <div class="fr">
                 <span class="fl">CNPJ:</span>
-                <span class="fv">00.000.000/0000-00</span>
+                <span class="fv">38.403.789/0001-02</span>
                 <span class="fl" style="min-width:70px">Telefone:</span>
                 <span class="fv">(63) 3000-0000</span>
             </div>
