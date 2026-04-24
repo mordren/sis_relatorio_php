@@ -15,6 +15,7 @@ class Cliente extends Model
         'tipo_pessoa',
         'nome_razao_social',
         'cpf_cnpj',
+        'proprietario',
         'endereco',
         'cidade',
         'estado',

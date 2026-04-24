@@ -208,6 +208,7 @@
             border: none;
         }
         .toolbar .btn-back { background: #6c757d; color: #fff; }
+        .toolbar .btn-edit { background: #0d6efd; color: #fff; }
         .toolbar .btn-print { background: #198754; color: #fff; }
 
         /* ================================================
@@ -243,6 +244,7 @@
      ═══════════════════════════════════════════════════════════════ --}}
 <div class="toolbar">
     <a href="{{ route('relatorios.show', $relatorio) }}" class="btn-back">&larr; Voltar</a>
+    <a href="{{ route('relatorios.edit', $relatorio) }}" class="btn-edit">✏ Editar Relatório</a>
     <button type="button" onclick="window.print()" class="btn-print">🖨 Imprimir / Salvar PDF</button>
 </div>
 
@@ -455,28 +457,32 @@
                     <tr>
                         <td style="text-align:left;padding-left:6px;font-weight:600">Volume (m³)</td>
                         @for($i = 0; $i < 6; $i++)
-                            <td>&nbsp;</td>
+                            @php $comp = $compartimentos->values()->get($i); @endphp
+                            <td>@if($comp && $comp->capacidade_litros){{ number_format($comp->capacidade_litros, 0, ',', '.') }}@endif</td>
                         @endfor
                     </tr>
                     {{-- Produto perigoso --}}
                     <tr>
                         <td style="text-align:left;padding-left:6px;font-weight:600">Produto perigoso transp. (último)</td>
                         @for($i = 0; $i < 6; $i++)
-                            <td>&nbsp;</td>
+                            @php $comp = $compartimentos->values()->get($i); @endphp
+                            <td style="text-align:center">@if($comp){{ $comp->produto_anterior_nome ?? '' }}@endif</td>
                         @endfor
                     </tr>
                     {{-- Nº ONU --}}
                     <tr>
                         <td style="text-align:left;padding-left:6px;font-weight:600">Nº ONU</td>
                         @for($i = 0; $i < 6; $i++)
-                            <td>&nbsp;</td>
+                            @php $comp = $compartimentos->values()->get($i); @endphp
+                            <td>@if($comp){{ $comp->numero_onu ?? '' }}@endif</td>
                         @endfor
                     </tr>
                     {{-- Classe de risco --}}
                     <tr>
                         <td style="text-align:left;padding-left:6px;font-weight:600">Classe de risco</td>
                         @for($i = 0; $i < 6; $i++)
-                            <td>&nbsp;</td>
+                            @php $comp = $compartimentos->values()->get($i); @endphp
+                            <td>@if($comp){{ $comp->classe_risco ?? '' }}@endif</td>
                         @endfor
                     </tr>
                     {{-- Índice CO --}}

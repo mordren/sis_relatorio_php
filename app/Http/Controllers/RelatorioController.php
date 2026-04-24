@@ -32,13 +32,14 @@ class RelatorioController extends Controller
 
     public function create(): View
     {
-        $responsaveis = User::orderBy('name')->get();
-        $oldCliente   = null;
+        $responsaveis       = User::orderBy('name')->get();
+        $currentUserId      = auth()->id();
+        $oldCliente         = null;
         if (old('cliente_id')) {
             $oldCliente = Cliente::find(old('cliente_id'), ['id', 'nome_razao_social', 'cpf_cnpj']);
         }
 
-        return view('relatorios.create', compact('responsaveis', 'oldCliente'));
+        return view('relatorios.create', compact('responsaveis', 'currentUserId', 'oldCliente'));
     }
 
     /**
@@ -214,11 +215,10 @@ class RelatorioController extends Controller
                         'numero_onu'    => $this->resolveNumeroOnu($nomeProduto),
                         'classe_risco'  => '3',
                         'pressao_vapor' => null,   // displayed as NA in UI
-                        'tempo_minutos' => $capacidade !== null
-                            ? (int) round($capacidade * 12) : null,
+                        'tempo_minutos' => $capacidade !== null ? 60 : null,
                         'massa_vapor'   => null,   // displayed as NA in UI
                         'volume_ar'     => $capacidade !== null
-                            ? round($capacidade * 168, 4) : null,
+                            ? round($capacidade * 20, 4) : null,
                         'neutralizante' => 'NA',
 
                         // Lacre fields are not used in this workflow

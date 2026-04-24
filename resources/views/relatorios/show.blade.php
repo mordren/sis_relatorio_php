@@ -12,7 +12,7 @@
         <a href="{{ route('dashboard') }}" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-arrow-left"></i> Painel
         </a>
-        @if($relatorio->status === \App\Enums\StatusRelatorio::RASCUNHO)
+        @if($relatorio->status === \App\Enums\StatusRelatorio::RASCUNHO || $relatorio->status === \App\Enums\StatusRelatorio::EMITIDO)
             <a href="{{ route('relatorios.edit', $relatorio) }}" class="btn btn-primary btn-sm">
                 <i class="bi bi-pencil"></i> Editar
             </a>

@@ -10,6 +10,7 @@ use App\Models\RelatorioDescontaminacao;
 use App\Models\RelatorioEquipamentoUtilizado;
 use App\Models\RelatorioFinalidade;
 use App\Models\RelatorioVeiculoSnapshot;
+use App\Models\Setting;
 use App\Models\Veiculo;
 use Illuminate\Support\Facades\DB;
 
@@ -124,15 +125,20 @@ class SnapshotService
         array $equipamentosData = []
     ): RelatorioDescontaminacao {
         return DB::transaction(function () use ($reportData, $finalidadesData, $cliente, $veiculo, $equipamentosData) {
-            // Generate the next report number. We attempt to obtain the current
-            // max and increment it, but also defensively check for existence to
-            // avoid UNIQUE constraint violations (e.g. on DBs where locks are
-            // not available or when concurrent inserts exist).
-            $maxNumber = RelatorioDescontaminacao::lockForUpdate()->max('numero_relatorio') ?? 0;
-            $candidate = (int) $maxNumber + 1;
+            // Generate the next report number. If an admin has explicitly set
+            // proximo_numero_relatorio, use that value (then clear it).
+            // Otherwise fall back to MAX + 1.
+            $settingValue = Setting::get('proximo_numero_relatorio');
+            $maxNumber    = RelatorioDescontaminacao::lockForUpdate()->max('numero_relatorio') ?? 0;
 
-            // If by any chance the candidate is already present (race or stale
-            // reads), increment until we find a free number.
+            if ($settingValue !== null && (int) $settingValue > 0) {
+                $candidate = (int) $settingValue;
+                Setting::forget('proximo_numero_relatorio');
+            } else {
+                $candidate = (int) $maxNumber + 1;
+            }
+
+            // If the candidate is already taken, keep incrementing.
             while (RelatorioDescontaminacao::where('numero_relatorio', $candidate)->exists()) {
                 $candidate++;
             }

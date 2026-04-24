@@ -10,6 +10,54 @@
     </a>
 </div>
 
+@if(auth()->user()->is_admin)
+<div class="card shadow-sm border-warning mb-4">
+    <div class="card-header bg-warning bg-opacity-10 d-flex align-items-center gap-2">
+        <i class="bi bi-shield-lock text-warning"></i>
+        <span class="fw-semibold">Administração — Contagem de OS</span>
+    </div>
+    <div class="card-body">
+        @if(session('success'))
+            <div class="alert alert-success py-2 mb-3">{{ session('success') }}</div>
+        @endif
+        <form method="POST" action="{{ route('configuracoes.proximo_relatorio') }}" class="row g-3 align-items-end">
+            @csrf
+            <div class="col-auto">
+                <label for="proximo_numero" class="form-label mb-1">
+                    Definir próximo nº de relatório
+                </label>
+                <input type="number"
+                       id="proximo_numero"
+                       name="proximo_numero"
+                       class="form-control @error('proximo_numero') is-invalid @enderror"
+                       min="1"
+                       value="{{ old('proximo_numero', $proximoRelatorio ?: '') }}"
+                       placeholder="Ex: 42"
+                       style="width: 160px">
+                @error('proximo_numero')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-warning">
+                    <i class="bi bi-arrow-repeat"></i> Aplicar
+                </button>
+            </div>
+            @if($proximoRelatorio)
+            <div class="col-auto">
+                <span class="badge bg-warning text-dark fs-6">
+                    Configurado: #{{ $proximoRelatorio }}
+                </span>
+            </div>
+            @endif
+        </form>
+        <small class="text-muted mt-2 d-block">
+            O próximo relatório criado receberá este número. Após ser utilizado, a configuração é removida automaticamente.
+        </small>
+    </div>
+</div>
+@endif
+
 <div class="card shadow-sm">
     <div class="card-header bg-white">
         <h5 class="mb-0"><i class="bi bi-clock-history"></i> Últimos Relatórios</h5>
@@ -73,7 +121,7 @@
                                    title="Ver">
                                     <i class="bi bi-eye"></i>
                                 </a>
-                                @if($relatorio->status === \App\Enums\StatusRelatorio::RASCUNHO)
+                                @if($relatorio->status === \App\Enums\StatusRelatorio::RASCUNHO || $relatorio->status === \App\Enums\StatusRelatorio::EMITIDO)
                                     <a href="{{ route('relatorios.edit', $relatorio) }}"
                                        class="btn btn-outline-primary btn-sm"
                                        title="Editar">

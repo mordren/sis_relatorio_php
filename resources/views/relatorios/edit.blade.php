@@ -298,8 +298,8 @@
  * SRD-compatible compartment auto-fill logic.
  *
  * Business rules applied on the client side (also enforced server-side):
- *   - tempo_minutos  = capacidade_litros * 12
- *   - volume_ar      = capacidade_litros * 168
+ *   - tempo_minutos  = 60 (fixo)
+ *   - volume_ar      = capacidade_litros * 20
  *   - numero_onu     = derived from selected product (data-onu attribute)
  *   - classe_risco   = always 3  (static badge)
  *   - pressao_vapor  = always NA (static badge)
@@ -317,8 +317,8 @@ document.addEventListener('DOMContentLoaded', function () {
         function recalcFromVolume() {
             const vol = parseFloat(volumeInput ? volumeInput.value : '');
             if (!isNaN(vol) && vol > 0) {
-                if (tempoDisplay) tempoDisplay.textContent = Math.round(vol * 12);
-                if (volArDisplay) volArDisplay.textContent = Math.round(vol * 168);
+                if (tempoDisplay) tempoDisplay.textContent = 60;
+                if (volArDisplay) volArDisplay.textContent = (vol * 20);
             } else {
                 if (tempoDisplay) tempoDisplay.textContent = '”';
                 if (volArDisplay) volArDisplay.textContent = '”';

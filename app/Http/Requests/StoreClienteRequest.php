@@ -21,6 +21,7 @@ class StoreClienteRequest extends FormRequest
             'cpf_cnpj' => [
                 'required',
                 'string',
+                'max:20',
                 'regex:/^\d+$/',
                 Rule::unique('clientes', 'cpf_cnpj'),
                 function (string $attribute, mixed $value, \Closure $fail) {
@@ -33,6 +34,7 @@ class StoreClienteRequest extends FormRequest
                     }
                 },
             ],
+            'proprietario' => ['nullable', 'string', 'max:200'],
             'endereco' => ['nullable', 'string', 'max:255'],
             'cidade' => ['nullable', 'string', 'max:255'],
             'estado' => ['nullable', 'string', 'size:2'],
@@ -50,6 +52,7 @@ class StoreClienteRequest extends FormRequest
             'cpf_cnpj.required' => 'O CPF/CNPJ é obrigatório.',
             'cpf_cnpj.unique' => 'Este CPF/CNPJ já está cadastrado.',
             'cpf_cnpj.regex' => 'O CPF/CNPJ deve conter apenas dígitos numéricos.',
+            'cpf_cnpj.max' => 'O CPF/CNPJ não pode ter mais de 20 caracteres.',
             'estado.size' => 'O estado deve conter exatamente 2 caracteres.',
             'email.email' => 'O e-mail informado não é válido.',
         ];

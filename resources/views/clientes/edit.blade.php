@@ -74,12 +74,25 @@
                                    id="cpf_cnpj"
                                    name="cpf_cnpj"
                                    value="{{ old('cpf_cnpj', $cliente->cpf_cnpj) }}"
-                                   maxlength="14"
+                                   maxlength="20"
                                    required>
                             @error('cpf_cnpj')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                             <div class="form-text">Somente dígitos. PF: 11 dígitos / PJ: 14 dígitos.</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="proprietario" class="form-label">Proprietário</label>
+                            <input type="text"
+                                   class="form-control @error('proprietario') is-invalid @enderror"
+                                   id="proprietario"
+                                   name="proprietario"
+                                   value="{{ old('proprietario', $cliente->proprietario) }}"
+                                   maxlength="200">
+                            @error('proprietario')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
 
                         <div class="col-md-6">

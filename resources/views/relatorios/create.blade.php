@@ -61,7 +61,7 @@
                                         required>
                                     <option value="">Selecione...</option>
                                     @foreach($responsaveis as $resp)
-                                        <option value="{{ $resp->id }}" {{ old('responsavel_tecnico_id') == $resp->id ? 'selected' : '' }}>
+                                        <option value="{{ $resp->id }}" {{ old('responsavel_tecnico_id', $currentUserId) == $resp->id ? 'selected' : '' }}>
                                             {{ $resp->name }}
                                         </option>
                                     @endforeach
