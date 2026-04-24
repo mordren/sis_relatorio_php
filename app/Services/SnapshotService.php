@@ -109,6 +109,89 @@ class SnapshotService
     }
 
     /**
+     * Update an existing client snapshot with the current live data from the Cliente record.
+     * Use this when the client's data has changed and the report snapshot needs to reflect it.
+     */
+    public function updateClienteSnapshot(
+        RelatorioDescontaminacao $relatorio,
+        Cliente $cliente
+    ): RelatorioClienteSnapshot {
+        $snapshot = $relatorio->clienteSnapshot;
+
+        if (! $snapshot) {
+            return $this->createClienteSnapshot($relatorio, $cliente);
+        }
+
+        $snapshot->update([
+            'cliente_origem_id' => $cliente->id,
+            'tipo_pessoa'       => $cliente->tipo_pessoa->value,
+            'nome_razao_social' => $cliente->nome_razao_social,
+            'cpf_cnpj'          => $cliente->cpf_cnpj,
+            'endereco'          => $cliente->endereco,
+            'cidade'            => $cliente->cidade,
+            'estado'            => $cliente->estado,
+            'telefone'          => $cliente->telefone,
+            'email'             => $cliente->email,
+        ]);
+
+        return $snapshot->refresh();
+    }
+
+    /**
+     * Update an existing vehicle snapshot with the current live data from the Veiculo record.
+     * Use this when the vehicle's data has changed and the report snapshot needs to reflect it.
+     */
+    public function updateVeiculoSnapshot(
+        RelatorioDescontaminacao $relatorio,
+        Veiculo $veiculo
+    ): RelatorioVeiculoSnapshot {
+        $snapshot = $relatorio->veiculoSnapshot;
+
+        if (! $snapshot) {
+            return $this->createVeiculoSnapshot($relatorio, $veiculo);
+        }
+
+        $snapshot->update([
+            'veiculo_origem_id' => $veiculo->id,
+            'placa'             => $veiculo->placa,
+            'modelo'            => $veiculo->modelo,
+            'marca'             => $veiculo->marca,
+            'ano'               => $veiculo->ano,
+            'tipo_veiculo'      => $veiculo->tipo_veiculo,
+            'numero_equipamento' => $veiculo->numero_equipamento,
+        ]);
+
+        return $snapshot->refresh();
+    }
+
+    /**
+     * Re-sync all snapshots (client and vehicle) for a given report using the
+     * current live data from the originating records.
+     * Returns false if the originating client or vehicle no longer exists.
+     */
+    public function refreshSnapshots(RelatorioDescontaminacao $relatorio): bool
+    {
+        $relatorio->loadMissing(['clienteSnapshot', 'veiculoSnapshot']);
+
+        $clienteId = $relatorio->clienteSnapshot?->cliente_origem_id;
+        $veiculoId = $relatorio->veiculoSnapshot?->veiculo_origem_id;
+
+        $cliente = $clienteId ? Cliente::find($clienteId) : null;
+        $veiculo = $veiculoId ? Veiculo::find($veiculoId) : null;
+
+        if (! $cliente || ! $veiculo) {
+            return false;
+        }
+
+        DB::transaction(function () use ($relatorio, $cliente, $veiculo) {
+            $this->updateClienteSnapshot($relatorio, $cliente);
+            $this->updateVeiculoSnapshot($relatorio, $veiculo);
+        });
+
+        return true;
+    }
+
+    /**
      * Create the full report aggregate with all snapshots in a single transaction.
      *
      * @param  array  $reportData  Validated report data

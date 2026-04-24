@@ -168,4 +168,79 @@ class SnapshotServiceTest extends TestCase
         $this->assertEquals($originalPlaca, $relatorio->veiculoSnapshot->placa);
         $this->assertNotEquals('CHANGED1', $relatorio->veiculoSnapshot->placa);
     }
+
+    public function test_update_cliente_snapshot_reflects_new_data(): void
+    {
+        $relatorio = RelatorioDescontaminacao::factory()->create([
+            'responsavel_tecnico_id' => $this->user->id,
+        ]);
+
+        $this->service->createClienteSnapshot($relatorio, $this->cliente);
+
+        // Simulate a data change in the live record
+        $this->cliente->update(['nome_razao_social' => 'Nome Atualizado SA', 'email' => 'novo@email.com']);
+
+        // Now call the update method
+        $updated = $this->service->updateClienteSnapshot($relatorio, $this->cliente);
+
+        $this->assertEquals('Nome Atualizado SA', $updated->nome_razao_social);
+        $this->assertEquals('novo@email.com', $updated->email);
+        $this->assertEquals($this->cliente->id, $updated->cliente_origem_id);
+    }
+
+    public function test_update_veiculo_snapshot_reflects_new_data(): void
+    {
+        $relatorio = RelatorioDescontaminacao::factory()->create([
+            'responsavel_tecnico_id' => $this->user->id,
+        ]);
+
+        $this->service->createVeiculoSnapshot($relatorio, $this->veiculo);
+
+        // Simulate a data change in the live record
+        $this->veiculo->update(['placa' => 'NEWPLACA', 'marca' => 'Nova Marca']);
+
+        $updated = $this->service->updateVeiculoSnapshot($relatorio, $this->veiculo);
+
+        $this->assertEquals('NEWPLACA', $updated->placa);
+        $this->assertEquals('Nova Marca', $updated->marca);
+    }
+
+    public function test_refresh_snapshots_updates_both_client_and_vehicle(): void
+    {
+        $relatorio = RelatorioDescontaminacao::factory()->create([
+            'responsavel_tecnico_id' => $this->user->id,
+        ]);
+
+        $this->service->createClienteSnapshot($relatorio, $this->cliente);
+        $this->service->createVeiculoSnapshot($relatorio, $this->veiculo);
+
+        $this->cliente->update(['nome_razao_social' => 'Cliente Novo']);
+        $this->veiculo->update(['placa' => 'VVVV9999']);
+
+        $result = $this->service->refreshSnapshots($relatorio);
+
+        $this->assertTrue($result);
+
+        $relatorio->refresh();
+        $relatorio->load(['clienteSnapshot', 'veiculoSnapshot']);
+
+        $this->assertEquals('Cliente Novo', $relatorio->clienteSnapshot->nome_razao_social);
+        $this->assertEquals('VVVV9999', $relatorio->veiculoSnapshot->placa);
+    }
+
+    public function test_refresh_snapshots_returns_false_when_cliente_deleted(): void
+    {
+        $relatorio = RelatorioDescontaminacao::factory()->create([
+            'responsavel_tecnico_id' => $this->user->id,
+        ]);
+
+        $this->service->createClienteSnapshot($relatorio, $this->cliente);
+        $this->service->createVeiculoSnapshot($relatorio, $this->veiculo);
+
+        $this->cliente->delete();
+
+        $result = $this->service->refreshSnapshots($relatorio);
+
+        $this->assertFalse($result);
+    }
 }

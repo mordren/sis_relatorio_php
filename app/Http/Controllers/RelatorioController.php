@@ -308,5 +308,24 @@ class RelatorioController extends Controller
 
         return redirect()->route('dashboard')->with('success', "OS #{$relatorio->numero_relatorio} excluída com sucesso.");
     }
+
+    /**
+     * Re-sync the client and vehicle snapshots of a report with the current
+     * live data from the originating records.
+     */
+    public function refreshSnapshots(RelatorioDescontaminacao $relatorio): RedirectResponse
+    {
+        $ok = $this->snapshotService->refreshSnapshots($relatorio);
+
+        if (! $ok) {
+            return redirect()
+                ->route('relatorios.edit', $relatorio)
+                ->with('error', 'Não foi possível atualizar: cliente ou veículo original não encontrado.');
+        }
+
+        return redirect()
+            ->route('relatorios.edit', $relatorio)
+            ->with('success', 'Dados do cliente e veículo atualizados no relatório.');
+    }
 }
 

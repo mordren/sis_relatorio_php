@@ -56,6 +56,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/relatorios/{relatorio}', [RelatorioController::class, 'show'])->name('relatorios.show');
     Route::get('/relatorios/{relatorio}/editar', [RelatorioController::class, 'edit'])->name('relatorios.edit');
     Route::put('/relatorios/{relatorio}', [RelatorioController::class, 'update'])->name('relatorios.update');
+    Route::post('/relatorios/{relatorio}/refresh-snapshots', [RelatorioController::class, 'refreshSnapshots'])->name('relatorios.refresh-snapshots');
     Route::get('/relatorios/{relatorio}/imprimir', [RelatorioController::class, 'print'])->name('relatorios.print');
     Route::delete('/relatorios/{relatorio}', [RelatorioController::class, 'destroy'])->name('relatorios.destroy');
 
@@ -78,5 +79,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/usuarios/{user}/editar', [UserController::class, 'edit'])->name('users.edit');
         Route::put('/usuarios/{user}', [UserController::class, 'update'])->name('users.update');
         Route::delete('/usuarios/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+
+        // Configuracoes
+        Route::post('/configuracoes/proximo-relatorio', [DashboardController::class, 'setProximoRelatorio'])->name('configuracoes.proximo_relatorio');
     });
 });

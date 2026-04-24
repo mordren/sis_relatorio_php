@@ -8,9 +8,18 @@
         <i class="bi bi-pencil-square"></i>
         Editar Relatório <strong>#{{ $relatorio->numero_relatorio }}</strong>
     </h2>
-    <a href="{{ route('relatorios.show', $relatorio) }}" class="btn btn-outline-secondary btn-sm">
-        <i class="bi bi-x-lg"></i> Cancelar
-    </a>
+    <div class="d-flex gap-2">
+        <form method="POST" action="{{ route('relatorios.refresh-snapshots', $relatorio) }}"
+              onsubmit="return confirm('Atualizar os dados de cliente e veículo neste relatório com os dados atuais cadastrados? Esta ação não pode ser desfeita.')">
+            @csrf
+            <button type="submit" class="btn btn-outline-warning btn-sm">
+                <i class="bi bi-arrow-clockwise"></i> Atualizar cliente/veículo
+            </button>
+        </form>
+        <a href="{{ route('relatorios.show', $relatorio) }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-x-lg"></i> Cancelar
+        </a>
+    </div>
 </div>
 
 @if(session('success'))
@@ -130,7 +139,6 @@
         @endif
     </div>
 
-    {{-- Compartimentos --}}
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-white d-flex align-items-center justify-content-between">
             <h6 class="mb-0"><i class="bi bi-layout-split"></i> Compartimentos do Relatório</h6>
@@ -290,6 +298,7 @@
         </button>
     </div>
 </form>
+
 @endsection
 
 @push('scripts')
